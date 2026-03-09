@@ -1,12 +1,49 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
+import { useAuth } from '../features/auth/context/AuthContext';
+import { Link } from 'react-router-dom';
 
 const RentalsPage = () => {
+    const { profile } = useAuth();
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<any>(null);
+    const [paymentConfirmation, setPaymentConfirmation] = useState('');
+    const [paymentError, setPaymentError] = useState('');
+
+    const getPaymentStorageKey = (userId: string) => `summs_card_profile_${userId}`;
+
+    const getStoredPaymentData = () => {
+        if (!profile) return null;
+        const raw = localStorage.getItem(getPaymentStorageKey(profile.id));
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    };
+
+    const isPaymentDataValid = (paymentData: any) => {
+        if (!paymentData) return false;
+        const cardNumberValid = /^\d{16}$/.test(String(paymentData.cardNumber || ''));
+        const firstNameValid = String(paymentData.cardFirstName || '').trim().length > 0;
+        const lastNameValid = String(paymentData.cardLastName || '').trim().length > 0;
+        const cvcValid = /^\d{3}$/.test(String(paymentData.cardVerificationCode || ''));
+        const expiryRaw = String(paymentData.expirationDate || '');
+        const expiryValid = /^\d{4}-\d{2}$/.test(expiryRaw);
+        if (!expiryValid) return false;
+
+        const [year, month] = expiryRaw.split('-').map(Number);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const notExpired = year > currentYear || (year === currentYear && month >= currentMonth);
+
+        return cardNumberValid && firstNameValid && lastNameValid && cvcValid && notExpired;
+    };
 
     const fetchBookings = async () => {
         try {
@@ -24,6 +61,12 @@ const RentalsPage = () => {
     }, []);
 
     const openPaymentModal = (booking: any) => {
+        const paymentData = getStoredPaymentData();
+        if (!isPaymentDataValid(paymentData)) {
+            setPaymentError('Payment cannot be processed yet. Please enter valid credit card details in Account Settings.');
+            return;
+        }
+        setPaymentError('');
         setSelectedBookingForPayment(booking);
         setPaymentModalOpen(true);
     };
@@ -31,12 +74,27 @@ const RentalsPage = () => {
     const confirmPayment = async () => {
         if (!selectedBookingForPayment) return;
         try {
-            await api.post(`/bookings/${selectedBookingForPayment.id}/pay`);
+            const paymentData = getStoredPaymentData();
+            if (!isPaymentDataValid(paymentData)) {
+                setPaymentError('Payment cannot be processed yet. Please enter valid credit card details in Account Settings.');
+                return;
+            }
+
+            const res = await api.post(`/bookings/${selectedBookingForPayment.id}/pay`, {
+                paymentMethod: 'CARD',
+                cardNumber: paymentData.cardNumber,
+                cardFirstName: paymentData.cardFirstName,
+                cardLastName: paymentData.cardLastName,
+                cardVerificationCode: paymentData.cardVerificationCode,
+                expirationDate: paymentData.expirationDate
+            });
+            setPaymentConfirmation(`Payment confirmed. Transaction ID: ${res.data.transactionId}`);
+            setPaymentError('');
             setPaymentModalOpen(false);
             setSelectedBookingForPayment(null);
             fetchBookings(); // reload
         } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            setPaymentError(e.response?.data?.error || e.message);
         }
     }
 
@@ -58,6 +116,12 @@ const RentalsPage = () => {
         <div className="page-container">
             <h2>My Rentals</h2>
             {error && <p className="error">{error}</p>}
+            {paymentConfirmation && <p className="status-msg">{paymentConfirmation}</p>}
+            {paymentError && (
+                <div className="card-error-banner" style={{ marginBottom: 20 }}>
+                    {paymentError} <Link to="/account">Go to Account Settings</Link>
+                </div>
+            )}
 
             <h3>Current Rentals & Actions</h3>
             {currentBookings.length === 0 ? <p>No current rentals need your attention.</p> : (
@@ -105,7 +169,8 @@ const RentalsPage = () => {
                 <div className="modal-backdrop">
                     <div className="modal-content">
                         <h3>Confirm Payment</h3>
-                        <p>Are you sure you want to process the payment of <strong>${selectedBookingForPayment.totalCost}</strong> for this rental?</p>
+                        <p>Total amount to pay: <strong>${selectedBookingForPayment.totalCost}</strong></p>
+                        <p>Payment method: <strong>Credit Card</strong></p>
                         <div className="modal-actions">
                             <button onClick={confirmPayment} className="success-btn">Confirm Payment</button>
                             <button onClick={() => setPaymentModalOpen(false)} style={{ backgroundColor: '#6c757d' }}>Cancel</button>

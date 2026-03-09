@@ -6,6 +6,12 @@ const ProviderDashboard = () => {
     const [providers, setProviders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+    const [editVehicle, setEditVehicle] = useState({
+        costPerMinute: 0,
+        availability: true,
+        model: ''
+    });
 
     const [newVehicle, setNewVehicle] = useState({
         providerId: '',
@@ -51,6 +57,39 @@ const ProviderDashboard = () => {
         if (!window.confirm('Remove this vehicle?')) return;
         try {
             await api.delete(`/provider/vehicles/${id}`);
+            fetchData();
+        } catch (e: any) {
+            alert(e.response?.data?.error || e.message);
+        }
+    };
+
+    const startEdit = (vehicle: any) => {
+        setEditingVehicleId(vehicle.id);
+        setEditVehicle({
+            costPerMinute: vehicle.costPerMinute,
+            availability: vehicle.availability,
+            model: vehicle.car?.model || ''
+        });
+    };
+
+    const cancelEdit = () => {
+        setEditingVehicleId(null);
+        setEditVehicle({ costPerMinute: 0, availability: true, model: '' });
+    };
+
+    const handleUpdate = async (id: string, hasCarModel: boolean) => {
+        try {
+            const payload: any = {
+                costPerMinute: editVehicle.costPerMinute,
+                availability: editVehicle.availability
+            };
+
+            if (hasCarModel) {
+                payload.model = editVehicle.model;
+            }
+
+            await api.put(`/provider/vehicles/${id}`, payload);
+            cancelEdit();
             fetchData();
         } catch (e: any) {
             alert(e.response?.data?.error || e.message);
@@ -109,10 +148,50 @@ const ProviderDashboard = () => {
                     {vehicles.map(v => (
                         <tr key={v.id}>
                             <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
-                            <td>${v.costPerMinute}/min</td>
-                            <td>{v.availability ? 'Yes' : 'No'}</td>
                             <td>
-                                <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
+                                {editingVehicleId === v.id ? (
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editVehicle.costPerMinute}
+                                        onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
+                                    />
+                                ) : (
+                                    <>${v.costPerMinute}/min</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <select
+                                        value={String(editVehicle.availability)}
+                                        onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
+                                    >
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                ) : (
+                                    <>{v.availability ? 'Yes' : 'No'}</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        {v.car && (
+                                            <input
+                                                placeholder="Car model"
+                                                value={editVehicle.model}
+                                                onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
+                                            />
+                                        )}
+                                        <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
+                                        <button onClick={cancelEdit}>Cancel</button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => startEdit(v)}>Edit</button>
+                                        <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
+                                    </div>
+                                )}
                             </td>
                         </tr>
                     ))}
