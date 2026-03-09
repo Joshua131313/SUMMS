@@ -1,11 +1,25 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
+import { useAuth } from '../features/auth/context/AuthContext';
+
+type ProviderOption = {
+    id: string;
+    name: string;
+};
 
 const ProviderDashboard = () => {
+    const { profile } = useAuth();
     const [vehicles, setVehicles] = useState<any[]>([]);
-    const [providers, setProviders] = useState<any[]>([]);
+    const [providers, setProviders] = useState<ProviderOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [providerCompanyName, setProviderCompanyName] = useState('');
+    const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+    const [editVehicle, setEditVehicle] = useState({
+        costPerMinute: 0,
+        availability: true,
+        model: ''
+    });
 
     const [newVehicle, setNewVehicle] = useState({
         providerId: '',
@@ -13,18 +27,41 @@ const ProviderDashboard = () => {
         type: 'CAR',
         model: ''
     });
+    const mobilityProviderMissingCompany = profile?.role === 'MOBILITY_PROVIDER' && !providerCompanyName.trim();
+
+    const getProviderCompanyStorageKey = (userId: string) => `summs_provider_company_${userId}`;
 
     const fetchData = async () => {
         try {
-            const [vRes, pRes] = await Promise.all([
-                api.get('/vehicles'),
-                api.get('/provider/profiles')
-            ]);
-            setVehicles(vRes.data);
+            const pRes = await api.get('/provider/profiles');
             setProviders(pRes.data);
+
+            if (profile?.role === 'MOBILITY_PROVIDER') {
+                const companyName = localStorage.getItem(getProviderCompanyStorageKey(profile.id)) || '';
+                setProviderCompanyName(companyName);
+
+                if (!companyName.trim()) {
+                    setNewVehicle(prev => ({ ...prev, providerId: '' }));
+                    const vRes = await api.get('/provider/vehicles');
+                    setVehicles(vRes.data);
+                    return;
+                }
+
+                const providerSyncRes = await api.post('/provider/profiles', { name: companyName.trim() });
+                const syncedProvider = providerSyncRes.data as ProviderOption;
+                setNewVehicle(prev => ({ ...prev, providerId: syncedProvider.id }));
+
+                const vRes = await api.get('/provider/vehicles');
+                setVehicles(vRes.data);
+                return;
+            }
+
             if (pRes.data.length > 0) {
                 setNewVehicle(prev => ({ ...prev, providerId: pRes.data[0].id }));
             }
+
+            const vRes = await api.get('/provider/vehicles');
+            setVehicles(vRes.data);
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -38,6 +75,10 @@ const ProviderDashboard = () => {
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!newVehicle.providerId) {
+            alert('Select a valid mobility provider company before adding a vehicle.');
+            return;
+        }
         try {
             await api.post('/provider/vehicles', newVehicle);
             setNewVehicle({ ...newVehicle, costPerMinute: 0, model: '' });
@@ -57,6 +98,39 @@ const ProviderDashboard = () => {
         }
     };
 
+    const startEdit = (vehicle: any) => {
+        setEditingVehicleId(vehicle.id);
+        setEditVehicle({
+            costPerMinute: vehicle.costPerMinute,
+            availability: vehicle.availability,
+            model: vehicle.car?.model || ''
+        });
+    };
+
+    const cancelEdit = () => {
+        setEditingVehicleId(null);
+        setEditVehicle({ costPerMinute: 0, availability: true, model: '' });
+    };
+
+    const handleUpdate = async (id: string, hasCarModel: boolean) => {
+        try {
+            const payload: any = {
+                costPerMinute: editVehicle.costPerMinute,
+                availability: editVehicle.availability
+            };
+
+            if (hasCarModel) {
+                payload.model = editVehicle.model;
+            }
+
+            await api.put(`/provider/vehicles/${id}`, payload);
+            cancelEdit();
+            fetchData();
+        } catch (e: any) {
+            alert(e.response?.data?.error || e.message);
+        }
+    };
+
     if (loading) return <div>Loading provider dashboard...</div>;
 
     return (
@@ -68,12 +142,29 @@ const ProviderDashboard = () => {
                 <h3>Add New Vehicle</h3>
                 <div className="input-group">
                     <label>Mobility Provider Company</label>
-                    <select value={newVehicle.providerId} onChange={e => setNewVehicle({ ...newVehicle, providerId: e.target.value })} required>
-                        {providers.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                    </select>
+                    {profile?.role === 'ADMIN' ? (
+                        <select value={newVehicle.providerId} onChange={e => setNewVehicle({ ...newVehicle, providerId: e.target.value })} required>
+                            {providers.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <input
+                            value={providerCompanyName}
+                            readOnly
+                            style={{
+                                color: '#6c757d',
+                                backgroundColor: '#f8f9fa',
+                                borderColor: '#ced4da'
+                            }}
+                        />
+                    )}
                 </div>
+                {mobilityProviderMissingCompany && (
+                    <p style={{ color: '#6c757d', marginTop: -4 }}>
+                        Enter your company name in Account Settings to add vehicles.
+                    </p>
+                )}
                 <div className="input-group">
                     <label>Type</label>
                     <select value={newVehicle.type} onChange={e => setNewVehicle({ ...newVehicle, type: e.target.value })}>
@@ -92,7 +183,7 @@ const ProviderDashboard = () => {
                     <label>Cost per Minute ($)</label>
                     <input type="number" step="0.01" value={newVehicle.costPerMinute} onChange={e => setNewVehicle({ ...newVehicle, costPerMinute: parseFloat(e.target.value) })} required />
                 </div>
-                <button type="submit">Add Vehicle</button>
+                <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
             </form>
 
             <h3>Vehicles List</h3>
@@ -100,6 +191,7 @@ const ProviderDashboard = () => {
                 <thead>
                     <tr>
                         <th>ID / Model</th>
+                        <th>Mobility Provider Company</th>
                         <th>Pricing</th>
                         <th>Availability</th>
                         <th>Actions</th>
@@ -109,10 +201,51 @@ const ProviderDashboard = () => {
                     {vehicles.map(v => (
                         <tr key={v.id}>
                             <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
-                            <td>${v.costPerMinute}/min</td>
-                            <td>{v.availability ? 'Yes' : 'No'}</td>
+                            <td>{v.provider?.name || '-'}</td>
                             <td>
-                                <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
+                                {editingVehicleId === v.id ? (
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editVehicle.costPerMinute}
+                                        onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
+                                    />
+                                ) : (
+                                    <>${v.costPerMinute}/min</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <select
+                                        value={String(editVehicle.availability)}
+                                        onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
+                                    >
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                ) : (
+                                    <>{v.availability ? 'Yes' : 'No'}</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        {v.car && (
+                                            <input
+                                                placeholder="Car model"
+                                                value={editVehicle.model}
+                                                onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
+                                            />
+                                        )}
+                                        <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
+                                        <button onClick={cancelEdit}>Cancel</button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => startEdit(v)}>Edit</button>
+                                        <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
+                                    </div>
+                                )}
                             </td>
                         </tr>
                     ))}

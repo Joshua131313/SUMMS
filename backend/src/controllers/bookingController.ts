@@ -183,6 +183,50 @@ export const payRental = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
         const bookingId = String(req.params.id);
+        const {
+            paymentMethod,
+            cardNumber,
+            cardFirstName,
+            cardLastName,
+            cardVerificationCode,
+            expirationDate
+        } = req.body;
+
+        if (String(paymentMethod).toUpperCase() !== 'CARD') {
+            return res.status(400).json({ error: 'Only credit card payments are allowed' });
+        }
+
+        const cardNumberValid = /^\d{16}$/.test(String(cardNumber || ''));
+        const firstNameValid = String(cardFirstName || '').trim().length > 0;
+        const lastNameValid = String(cardLastName || '').trim().length > 0;
+        const cvcValid = /^\d{3}$/.test(String(cardVerificationCode || ''));
+        const expiryRaw = String(expirationDate || '');
+        const expiryFormatValid = /^\d{4}-\d{2}$/.test(expiryRaw);
+
+        if (!expiryFormatValid) {
+            return res.status(400).json({ error: 'Invalid expiration date format. Use YYYY-MM' });
+        }
+
+        const [yearRaw, monthRaw] = expiryRaw.split('-');
+        const year = Number(yearRaw);
+        const month = Number(monthRaw);
+        if (!Number.isFinite(year) || !Number.isFinite(month)) {
+            return res.status(400).json({ error: 'Invalid expiration date format. Use YYYY-MM' });
+        }
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const notExpired = year > currentYear || (year === currentYear && month >= currentMonth);
+
+        if (!cardNumberValid || !firstNameValid || !lastNameValid || !cvcValid || !notExpired) {
+            return res.status(400).json({
+                error: 'Invalid credit card details. Payment cannot be processed.'
+            });
+        }
+
+        if (process.env.PAYMENT_SERVICE_AVAILABLE === 'false') {
+            return res.status(503).json({ error: 'Payment service is currently unavailable' });
+        }
 
         const booking = await prisma.booking.findUnique({
             where: { id: bookingId },
@@ -197,11 +241,18 @@ export const payRental = async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'Not authorized to pay for this rental' });
         }
 
+        if (booking.status !== 'COMPLETED') {
+            return res.status(400).json({ error: 'Rental must be completed before payment' });
+        }
+
         if (booking.payment) {
             return res.status(400).json({ error: 'Booking already paid' });
         }
 
         const amount = Number(booking.totalCost);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return res.status(400).json({ error: 'Invalid rental amount to pay' });
+        }
 
         const payment = await prisma.payment.create({
             data: {
@@ -223,7 +274,13 @@ export const payRental = async (req: Request, res: Response) => {
             where: { id: bookingId }
         });
 
-        res.json({ payment, booking: updatedBooking });
+        res.json({
+            message: 'Payment processed successfully',
+            transactionId: payment.id,
+            paymentMethod: 'CARD',
+            payment,
+            booking: updatedBooking
+        });
     } catch (error: any) {
         res.status(500).json({ error: 'Failed to process payment', details: error.message });
     }
