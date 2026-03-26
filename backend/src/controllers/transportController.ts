@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { accessLogCreator } from '../services/creators/accessLogCreator.js';
 
 const prisma = new PrismaClient();
 
@@ -16,12 +17,9 @@ export const getRoutes = async (req: Request, res: Response) => {
 
         if (userId) {
             // Log access
-            await prisma.accessLog.create({
-                data: {
-                    userId,
-                    serviceType: 'PUBLIC_TRANSPORT',
-                    timeStamp: new Date()
-                }
+            await accessLogCreator.create({
+                userId,
+                serviceType: 'PUBLIC_TRANSPORT'
             });
         }
 

@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { vehicleAvailabilityService } from '../services/vehicleAvailability/vehicleAvailabilityService.js';
+import { transportCreator } from '../services/creators/transportCreator.js';
 
 const prisma = new PrismaClient();
 
@@ -104,16 +105,11 @@ export const addVehicle = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Invalid mobility provider selected' });
         }
 
-        const transport = await prisma.transport.create({
-            data: {
-                providerId: targetProviderId,
-                costPerMinute,
-                availability: true, // Default to true when added
-                ...(type === 'CAR' ? { car: { create: { model: model || 'Unknown' } } } : {}),
-                ...(type === 'BIKE' ? { bike: { create: {} } } : {}),
-                ...(type === 'SCOOTER' ? { scooter: { create: {} } } : {}),
-            },
-            include: { car: true, bike: true, scooter: true }
+        const transport = await transportCreator.create({
+            providerId: targetProviderId,
+            costPerMinute: Number(costPerMinute),
+            type,
+            model
         });
 
         res.status(201).json(transport);
