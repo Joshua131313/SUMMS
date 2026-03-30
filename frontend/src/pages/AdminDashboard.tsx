@@ -57,47 +57,12 @@ const AdminDashboard = () => {
             </h1>
 
             <div className="grid">
-            <div className="card">
-    <h3>Rental Analytics</h3>
-    <p>Total Rentals: <strong>{rentals?.totalRentals || 0}</strong></p>
-    <p>Completed: <strong>{rentals?.completedRentals || 0}</strong></p>
-    <p>Total Revenue: <strong>${rentals?.totalRevenue || 0}</strong></p>
-
-    {!isAdmin && (
-        <div style={{ marginTop: 24 }}>
-            <h4 style={{ marginBottom: 12 }}>Your Vehicle Rental Breakdown</h4>
-
-            {rentals?.rentalsByVehicle?.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Vehicle</th>
-                                <th>Type</th>
-                                <th>Times Rented</th>
-                                <th>Completed Rentals</th>
-                                <th>Total Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rentals.rentalsByVehicle.map((vehicle: any) => (
-                                <tr key={vehicle.transportId}>
-                                    <td>{vehicle.vehicleName}</td>
-                                    <td>{vehicle.vehicleType}</td>
-                                    <td>{vehicle.rentalCount}</td>
-                                    <td>{vehicle.completedRentalCount}</td>
-                                    <td>${vehicle.totalRevenue}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="card">
+                    <h3>Rental Analytics</h3>
+                    <p>Total Rentals: <strong>{rentals?.totalRentals || 0}</strong></p>
+                    <p>Completed: <strong>{rentals?.completedRentals || 0}</strong></p>
+                    <p>Total Revenue: <strong>${rentals?.totalRevenue || 0}</strong></p>
                 </div>
-            ) : (
-                <p>No rentals found for your vehicles yet.</p>
-            )}
-        </div>
-    )}
-</div>
 
                 {isAdmin && (
                     <div className="card">
@@ -113,6 +78,41 @@ const AdminDashboard = () => {
                     </div>
                 )}
             </div>
+
+            {!isAdmin && (
+                <div className="card" style={{ marginTop: 32 }}>
+                    <h3>Your Vehicle Rental Breakdown</h3>
+
+                    {rentals?.rentalsByVehicle?.length > 0 ? (
+                        <div style={{ overflowX: 'auto', marginTop: 16 }}>
+                            <table className="data-table" style={{ minWidth: '700px' }}>
+                                <thead>
+                                    <tr>
+                                        <th>Vehicle</th>
+                                        <th>Type</th>
+                                        <th>Times Rented</th>
+                                        <th>Completed Rentals</th>
+                                        <th>Total Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rentals.rentalsByVehicle.map((vehicle: any) => (
+                                        <tr key={vehicle.transportId}>
+                                            <td>{vehicle.vehicleName}</td>
+                                            <td>{vehicle.vehicleType}</td>
+                                            <td>{vehicle.rentalCount}</td>
+                                            <td>{vehicle.completedRentalCount}</td>
+                                            <td>${vehicle.totalRevenue}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p style={{ marginTop: 16 }}>No rentals found for your vehicles yet.</p>
+                    )}
+                </div>
+            )}
 
             {isAdmin && (
                 <div style={{ marginTop: 40 }}>
