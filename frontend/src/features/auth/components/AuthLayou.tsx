@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import authLogo from "../../../assets/logo.png";
+import authLogo from "../../../assets/logoo.png";
 
 interface Props {
     title: string;
