@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { BusFront, CalendarCheck2, CarFront, SquareParking, UserRound } from 'lucide-react';
 import { useAuth } from '../features/auth/context/AuthContext';
@@ -33,7 +33,7 @@ const DashboardPage = () => {
         }
     }, [profile]);
 
-    let dashboardHighlight: React.ReactNode = null;
+    let dashboardHighlight: ReactNode = null;
 
     if (profile?.role === 'MOBILITY_PROVIDER') {
         dashboardHighlight = (

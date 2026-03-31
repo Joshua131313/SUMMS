@@ -143,6 +143,17 @@ p {
 
 .analytics-summary-card {
     flex: 0 0 320px;
+    min-height: 100%;
+}
+
+.analytics-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.total-revenue {
+    margin-top: auto;
 }
 
 .analytics-vehicle-status-card {
@@ -238,7 +249,8 @@ p {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-.rentals-current-card h3 {
+.rentals-current-card h3, .rentals-active-card h3, .rentals-past-card h3, .parking-reserved-card h3 {
+    font-size: 24px;
     color: #4a5a62;
 }
 
@@ -326,11 +338,23 @@ button:disabled {
 }
 
 .success-btn {
-    background-color: #198754;
+    background-color: #8fa69f;
 }
 
 .success-btn:hover {
-    background-color: #157347;
+    background-color: #7d968f;
+}
+
+.rentals-pay-btn {
+    background-color: #ffffff;
+    color: #4f895a;
+    border: 2px solid #d9e7de;
+    font-weight: 700;
+}
+
+.rentals-pay-btn:hover {
+    background-color: #f4f8f6;
+    color: #3f6f48;
 }
 
 .input-group {
@@ -365,7 +389,7 @@ select {
 .total-revenue {
     font-size: 20px;
     font-weight: 600;
-    margin-top: 120px;
+    margin-bottom: 20px;
     padding: 10px;
     background: #e8f5e9;
     color: black;

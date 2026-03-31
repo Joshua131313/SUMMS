@@ -142,7 +142,7 @@ const RentalsPage = () => {
                                 {b.status === 'ACTIVE' && <button className="del-btn" onClick={() => handleAction(b.id, 'end')}>End Rental</button>}
                                 {b.status === 'ACTIVE' && <p style={{ fontSize: '0.8rem', color: '#666' }}>* Ending computes final cost</p>}
                                 {b.status === 'COMPLETED' && !b.payment && (
-                                    <button onClick={() => openPaymentModal(b)} className="success-btn">Pay Now</button>
+                                    <button onClick={() => openPaymentModal(b)} className="rentals-pay-btn">Pay Now</button>
                                 )}
                                 {b.payment && <span style={{ color: 'green' }}>✓ Paid</span>}
                             </div>
@@ -155,7 +155,7 @@ const RentalsPage = () => {
             {pastBookings.length === 0 ? <p>No past rentals.</p> : (
                 <div className="grid">
                     {pastBookings.map(b => (
-                        <div key={b.id} className="card" style={{ opacity: 0.8 }}>
+                        <div key={b.id} className="card rentals-past-card" style={{ opacity: 0.8 }}>
                             <h3>{b.transport?.car?.model || "Mobility Vehicle"}</h3>
                             <p>Status: <strong>{b.status}</strong></p>
                             <p>Date: {new Date(b.bookingDate).toLocaleDateString()}</p>

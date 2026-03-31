@@ -47,22 +47,21 @@ const Navbar = () => {
                             Admin Tools
                         </NavLink>
                     )}
-                    {(profile?.role === 'MOBILITY_PROVIDER' || profile?.role === 'ADMIN') && (
-                        <>
+                    {profile?.role === 'MOBILITY_PROVIDER' && (
                         <NavLink
                             to="/provider/vehicles"
                             className={navItemClass}
                         >
                             Provider Tools
                         </NavLink>
-
+                    )}
+                    {profile?.role === 'MOBILITY_PROVIDER' && (
                         <NavLink
                             to="/admin/analytics"
                             className={navItemClass}
                         >
                             Provider Analytics
                         </NavLink>
-                        </>
                     )}
                         
                 </div>

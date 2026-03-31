@@ -5,6 +5,7 @@ const ParkingPage = () => {
     const [spots, setSpots] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
+    const getSpotCity = (location: string) => location.startsWith('Yonge St') ? 'Toronto' : 'Montreal';
 
     const fetchSpots = async () => {
         try {
@@ -63,9 +64,10 @@ const ParkingPage = () => {
                             className={spot.reservedByCurrentUser ? 'card parking-reserved-card' : 'card'}
                         >
                             <h3>{spot.location}</h3>
+                            <p>City: {getSpotCity(spot.location)}</p>
                             <p>Status: {spot.status}</p>
                             {spot.status === 'AVAILABLE' ? (
-                                <button onClick={() => reserveSpot(spot.id)}>
+                                <button className="rentals-pay-btn" onClick={() => reserveSpot(spot.id)}>
                                     Reserve Spot
                                 </button>
                             ) : spot.reservedByCurrentUser ? (
