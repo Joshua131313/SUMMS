@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import authLogo from "../../../assets/logo.png";
 
 interface Props {
     title: string;
@@ -30,6 +31,11 @@ const AuthLayout = ({
                       shadow-[0_20px_50px_rgba(0,0,0,0.15)]">
 
                 <div className="text-center mb-8">
+                    <img
+                        src={authLogo}
+                        alt="SUMMS transport logo"
+                        className="mx-auto mb-4 w-full max-w-[250px]"
+                    />
                     <h1 className="text-3xl font-semibold text-gray-800">
                         {title}
                     </h1>

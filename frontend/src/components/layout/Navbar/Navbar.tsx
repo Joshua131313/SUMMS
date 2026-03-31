@@ -6,7 +6,7 @@ const Navbar = () => {
     const { user, profile } = useAuth();
 
     const navItemClass = ({ isActive }: { isActive: boolean }) =>
-        `relative text-lg font-semibold px-1 py-1 text-gray-700 transition-colors hover:!text-red-600 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-red-600 after:origin-left after:transition-transform ${
+        `relative text-lg font-semibold px-1 py-1 text-gray-700 transition-colors hover:!text-[#4f895a] after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-[#4f895a] after:origin-left after:transition-transform ${
             isActive ? 'text-black after:scale-x-100' : 'after:scale-x-0 hover:after:scale-x-100'
         }`;
 
