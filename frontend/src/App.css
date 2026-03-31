@@ -49,24 +49,56 @@ p {
 }
 .card h3 {
     font-weight: bold;
+    font-size: 1.8rem;
 }
 .card a {
     margin-top: auto;
 }
+
+.dashboard-page {
+    max-width: 1440px;
+    margin: 20px auto;
+    padding: 16px 28px 24px;
+}
+
+.dashboard-recommendation-card {
+    width: min(92%, 1320px);
+    margin: 20px auto 0;
+    border-left: 4px solid #4f895a;
+    background: #f6f6f6;
+    color: #4f895a;
+}
+
 .dashboard-card-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
+    flex-wrap: nowrap;
+    gap: 18px;
     justify-content: center;
     align-items: stretch;
     text-align: center;
 }
 
 .dashboard-card {
-    width: 400px;
-    min-height: 200px;
-    padding: 24px;
+    width: 300px;
+    min-height: 180px;
+    padding: 20px;
     justify-content: space-between;
+}
+
+.dashboard-card-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 4px;
+    color: #ffffff;
+}
+
+.dashboard-card h3 {
+    font-size: 1.35rem;
+}
+
+.dashboard-card p {
+    font-size: 0.98rem;
+    margin: 0;
 }
 
 .form-card {

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { BusFront, CalendarCheck2, CarFront, SquareParking } from 'lucide-react';
 import { useAuth } from '../features/auth/context/AuthContext';
 import Button from '../components/ui/Button/Button';
 
@@ -7,22 +8,18 @@ const DashboardPage = () => {
 
 
     return (
-        <div className="page-container">
-            <div style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 className="text-3xl font-bold mb-12">Welcome to SUMMS!</h1>
-                <h1 className="text-3xl font-bold mb-12">What would you like to do today?</h1>
-            </div>
+        <div className="page-container dashboard-page">
             
 
             {/* Travel Recommendations Section */}
             {profile?.preferredMobility && profile?.city && (
-                <div className="card" style={{ marginTop: '20px', borderLeft: '4px solid #0066cc', background: '#eaf3fc' }}>
-                    <h3 style={{ margin: '0 0 10px 0' }}>✨ Personalized Travel Recommendations</h3>
+                <div className="card dashboard-recommendation-card">
+                    <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>✨ Personalized Travel Recommendations</h3>
                     {loadingRecommendation ? (
                         <p>Loading your recommendations...</p>
                     ) : recommendations.length > 0 ? (
                         <div className="flex-col">
-                            <p>
+                            <p style={{ fontSize: '18px' }}>
                                 Good news! We found <strong>{recommendations.length} available {profile.preferredMobility.toLowerCase()}s</strong> in <strong>{profile.city}</strong> based on your preferences.
                             </p>
                             <Button style={{ marginTop: 20 }}>
@@ -37,23 +34,27 @@ const DashboardPage = () => {
 
             <div className="dashboard-card-row" style={{ marginTop: 30 }}>
                 <div className="card dashboard-card">
+                    <CarFront className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>Rent a Vehicle</h3>
                     <p>Find nearby bikes, scooters, and cars.</p>
                     <Link to="/vehicles"><button className ="dashboard-button">Search Vehicles</button></Link>
                 </div>
 
                 <div className="card dashboard-card">
+                    <SquareParking className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>Book a Parking Spots</h3>
                     <p>Find & reserve parking in the city.</p>
                     <Link to="/parking"><button className ="dashboard-button">Find Parking</button></Link>
                 </div>
 
                 <div className="card dashboard-card">
+                    <BusFront className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>View Transit</h3>
                     <p>Check schedules for buses, trams & trains.</p>
                     <Link to="/public-transport"><button className ="dashboard-button">View Schedules</button></Link>
                 </div>
                 <div className="card dashboard-card">
+                    <CalendarCheck2 className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>View My Bookings</h3>
                     <p>Manage your active and past rentals.</p>
                     <Link to="/rentals/current"><button className="dashboard-button"

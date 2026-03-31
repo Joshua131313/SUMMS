@@ -6,7 +6,7 @@ const Navbar = () => {
     const { user, profile } = useAuth();
 
     const navItemClass = ({ isActive }: { isActive: boolean }) =>
-        `relative text-sm font-medium px-1 py-1 text-gray-700 transition-colors hover:!text-red-600 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-red-600 after:origin-left after:transition-transform ${
+        `relative text-lg font-semibold px-1 py-1 text-gray-700 transition-colors hover:!text-red-600 after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-full after:bg-red-600 after:origin-left after:transition-transform ${
             isActive ? 'text-black after:scale-x-100' : 'after:scale-x-0 hover:after:scale-x-100'
         }`;
 
@@ -27,7 +27,7 @@ const Navbar = () => {
         <nav className="sticky top-0 z-10 bg-white shadow-sm px-6 py-3">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 
-                <Link to="/" className="text-lg font-semibold text-gray-900">SUMMS</Link>
+                <Link to="/" className="text-3xl font-extrabold text-gray-900">SUMMS</Link>
                 
                 <div className="hidden lg:flex items-center gap-6">
                     {navigation.map((item) => (
