@@ -5,6 +5,7 @@ const ParkingPage = () => {
     const [spots, setSpots] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
+    const getSpotCity = (location: string) => location.startsWith('Yonge St') ? 'Toronto' : 'Montreal';
 
     const fetchSpots = async () => {
         try {
@@ -39,6 +40,16 @@ const ParkingPage = () => {
         }
     };
 
+    const unreserveSpot = async (spotId: string) => {
+        try {
+            await api.delete(`/parking-spots/reservations/${spotId}`);
+            setMsg('Spot unreserved successfully!');
+            fetchSpots();
+        } catch (err: any) {
+            setMsg(err.response?.data?.error || err.message);
+        }
+    };
+
     return (
         <div className="page-container">
             <h1 className="text-5xl font-bold mb-12">Parking Availability</h1>
@@ -48,15 +59,26 @@ const ParkingPage = () => {
             {loading ? <p>Loading...</p> : (
                 <div className="grid">
                     {spots.map(spot => (
-                        <div key={spot.id} className="card">
+                        <div
+                            key={spot.id}
+                            className={spot.reservedByCurrentUser ? 'card parking-reserved-card' : 'card'}
+                        >
                             <h3>{spot.location}</h3>
+                            <p>City: {getSpotCity(spot.location)}</p>
                             <p>Status: {spot.status}</p>
-                            <button
-                                onClick={() => reserveSpot(spot.id)}
-                                disabled={spot.status !== 'AVAILABLE'}
-                            >
-                                Reserve Spot
-                            </button>
+                            {spot.status === 'AVAILABLE' ? (
+                                <button className="rentals-pay-btn" onClick={() => reserveSpot(spot.id)}>
+                                    Reserve Spot
+                                </button>
+                            ) : spot.reservedByCurrentUser ? (
+                                <button className="del-btn" onClick={() => unreserveSpot(spot.id)}>
+                                    Unreserve Spot
+                                </button>
+                            ) : (
+                                <button disabled>
+                                    Unavailable
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>

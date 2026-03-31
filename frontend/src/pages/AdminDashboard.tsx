@@ -55,33 +55,72 @@ const AdminDashboard = () => {
                 {isAdmin ? 'Admin Dashboard' : 'Provider Analytics'}
             </h1>
 
-            <div className="grid">
-                <div className="card">
+            <div className="analytics-top-row">
+                <div className="card analytics-summary-card">
                     <h3>Rental Analytics Summary</h3>
+                    <div className='analytics-summary'>
                     <p>Total Rentals: <strong>{rentals?.summary?.totalRentals || 0}</strong></p>
                     <p>Completed Rentals: <strong>{rentals?.summary?.completedRentals || 0}</strong></p>
-                    <p>Total Revenue: <strong>${rentals?.summary?.totalRevenue || 0}</strong></p>
+                    </div>
+                    <div className='total-revenue'>
+                        <p>Total Revenue: <strong>${rentals?.summary?.totalRevenue || 0}</strong></p>
+                    </div>
                 </div>
 
-                <div className="card">
-                    <h3>Metrics</h3>
-                    <p>Bicycles Currently Rented: <strong>{rentals?.requiredMetrics?.bicyclesCurrentlyRented || 0}</strong></p>
-                    <p>Scooters Currently Available: <strong>{rentals?.requiredMetrics?.scootersCurrentlyAvailable || 0}</strong></p>
+                <div className="card analytics-vehicle-status-card">
+                    <h3>Vehicle Status</h3>
+                    <div style={{ overflowX: 'auto', marginTop: 16 }}>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Vehicle Type</th>
+                                    <th>Rented</th>
+                                    <th>Available</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rentals?.requiredMetrics?.vehicleStatusTable?.map((entry: any) => (
+                                    <tr key={entry.type}>
+                                        <td>{entry.type}</td>
+                                        <td>{entry.rented}</td>
+                                        <td>{entry.available}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style={{ marginTop: 16 }}>
                     <p>Trips Completed Today: <strong>{rentals?.requiredMetrics?.tripsCompletedToday || 0}</strong></p>
-                    <p>Most Used Mobility Option: <strong>{rentals?.requiredMetrics?.mostUsedMobilityOption || 'N/A'}</strong></p>
+                    <p>Most Used Mobility Option Between Bikes and Scooters: <strong>{rentals?.requiredMetrics?.mostUsedMobilityOption || 'N/A'}</strong></p>
+                    </div>
                 </div>
 
                 {isAdmin && (
-                    <div className="card">
+                    <div className="card analytics-gateway-card">
                         <h3>Gateway Logs</h3>
-                        <ul>
-                            {gateway?.map((g: any) => (
-                                <li key={g.serviceType}>
-                                    {g.serviceType}: {g._count.id} accesses
-                                </li>
-                            ))}
-                            {(!gateway || gateway.length === 0) && <li>No logs yet</li>}
-                        </ul>
+                        <div style={{ overflowX: 'auto', marginTop: 16 }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Service Type</th>
+                                        <th>Access Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {gateway?.map((g: any) => (
+                                        <tr key={g.serviceType}>
+                                            <td>{g.serviceType}</td>
+                                            <td>{g._count.id}</td>
+                                        </tr>
+                                    ))}
+                                    {(!gateway || gateway.length === 0) && (
+                                        <tr>
+                                            <td colSpan={2}>No logs yet</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>
@@ -95,6 +134,7 @@ const AdminDashboard = () => {
                                 <tr>
                                     <th>City</th>
                                     <th>Usage Count</th>
+                                    <th>Active Rentals</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -102,6 +142,7 @@ const AdminDashboard = () => {
                                     <tr key={entry.city}>
                                         <td>{entry.city}</td>
                                         <td>{entry.count}</td>
+                                        <td>{entry.activeRentals ?? 0}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -149,7 +190,10 @@ const AdminDashboard = () => {
 
             {isAdmin && (
                 <div style={{ marginTop: 40 }}>
-                    <h3>User Management</h3>
+                    <h3 style={{ fontSize: '28px', fontWeight: '700' }}>User Management</h3>
+                    <p style={{ marginBottom: 16 }}>
+                        Number of registered users: <strong>{users.length}</strong>
+                    </p>
                     <div style={{ overflowX: 'auto' }}>
                         <table className="data-table">
                             <thead>

@@ -14,7 +14,16 @@ const PublicTransportPage = () => {
 
     return (
         <div className="page-container">
-            <h1 className="text-5xl font-bold mb-12">Public Transport Schedules</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, gap: 16 }}>
+                <h1 className="text-5xl font-bold mb-12">Public Transport Schedules</h1>
+                <a
+                    href="https://www.stm.info/fr"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    <button type="button">View STM Schedule</button>
+                </a>
+            </div>
 
             {loading ? <p>Loading routes...</p> : (
                 <table className="data-table">

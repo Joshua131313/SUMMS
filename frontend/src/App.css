@@ -1,8 +1,8 @@
 /* Skeleton CSS for SUMMS Dashboard */
 body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
     color: #333;
-    background-color: #f4f7fa;
+    background-color: #ffffff;
     margin: 0;
     padding: 0;
 }
@@ -37,7 +37,8 @@ p {
 
 .card,
 .form-card {
-    background: #fff;
+    background: #91aca5;
+    color: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     padding: 20px;
@@ -48,16 +49,257 @@ p {
 }
 .card h3 {
     font-weight: bold;
+    font-size: 1.8rem;
 }
 .card a {
     margin-top: auto;
 }
+
+.dashboard-page {
+    max-width: 1440px;
+    margin: 20px auto;
+    padding: 16px 28px 24px;
+}
+
+.dashboard-recommendation-card {
+    width: min(92%, 1320px);
+    margin: 20px auto 0;
+    border-left: 4px solid #acd2cd;
+    background: #f6f6f6;
+    color: #66897f;
+}
+
+.dashboard-card-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 18px;
+    justify-content: center;
+    align-items: stretch;
+    text-align: center;
+}
+
+.dashboard-card {
+    width: 300px;
+    min-height: 180px;
+    padding: 20px;
+    justify-content: space-between;
+}
+
+.dashboard-card-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 4px;
+    color: #ffffff;
+}
+
+.dashboard-admin-card-icon, .dashboard-mobility-card-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 4px;
+    color: #66897f;
+}
+
+.dashboard-card h3 {
+    font-size: 1.35rem;
+}
+
+.dashboard-card p {
+    font-size: 0.98rem;
+    margin: 0;
+}
+
 .form-card {
     max-width: 500px;
 }
 
+.mobility-card, .admin-card {
+    background: linear-gradient(135deg, #fff4d6 0%, #ffe8f2 100%);
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    border: 1px solid #e1e4e8;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.mobility-card, .admin-card h3 {
+    font-size: 1.35rem;
+    color: #66897f;
+    font-weight: 700;
+}
+
+.mobility-card, .admin-card  p {
+    color: #8fa69f;
+    font-size: 0.98rem;
+    margin: 0;
+}
+
+.analytics-top-row {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.analytics-summary-card {
+    flex: 0 0 320px;
+    min-height: 100%;
+}
+
+.analytics-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.total-revenue {
+    margin-top: auto;
+}
+
+.analytics-vehicle-status-card {
+    flex: 1 1 auto;
+}
+
+.analytics-gateway-card {
+    flex: 0 0 280px;
+}
+
+.provider-dashboard-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.provider-dashboard-layout h3 {
+   font-size: 24px;
+   font-weight: 700;
+}
+.provider-dashboard-layout button {
+   background-color: white;
+   color: #66897f;
+   font-weight: 700;
+}
+
+.provider-form-card {
+    flex: 0 0 340px;
+}
+.provider-form-card input {
+    background-color: white;
+}
+.provider-vehicle-list-card {
+    flex: 1 1 auto;
+}
+
+.provider-vehicle-list-card h3 {
+    margin-bottom: 16px;
+}
+
+.account-form-layout {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.account-form-card {
+    flex: 1 1 0;
+    max-width: none;
+}
+
+.account-page {
+    max-width: 1120px;
+    margin: 8px auto;
+    padding: 6px 14px 12px;
+}
+
+.account-page h1 {
+    margin-bottom: 18px;
+    line-height: 1.05;
+}
+
+.account-page .form-card {
+    background: #f6f6f6;
+    color: #333;
+    padding: 10px;
+    gap: 4px;
+}
+
+.account-page .form-card h3 {
+    margin-bottom: 10px;
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #66897f;
+}
+
+.rentals-section-title {
+    margin-bottom: 10px;
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #66897f;
+}
+
+.rentals-current-card {
+    background: #acd2cd;
+    color: #fff;
+    border: 1px solid #e1e4e8;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.rentals-current-card h3, .rentals-active-card h3, .rentals-past-card h3, .parking-reserved-card h3 {
+    font-size: 24px;
+    color: #4a5a62;
+}
+
+.rentals-active-card {
+    background: linear-gradient(135deg, #fff4d6 0%, #ffe8f2 100%);
+    color: #7a435d;
+    border: 1px solid #ffd4e4;
+    box-shadow: 0 10px 25px rgba(255, 199, 220, 0.28);
+}
+
+.rentals-active-card h3 {
+    color: #7a435d;
+}
+
+.parking-reserved-card {
+    background: linear-gradient(135deg, #fff4d6 0%, #ffe8f2 100%);
+    color: #7a435d;
+    border: 1px solid #ffd4e4;
+    box-shadow: 0 10px 25px rgba(255, 199, 220, 0.28);
+}
+
+.parking-reserved-card h3 {
+    color: #7a435d;
+}
+
+.account-page label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 2.05;
+}
+
+.account-page br {
+    display: none;
+}
+
+.account-page input,
+.account-page select {
+    padding: 7px 10px;
+}
+
+.account-page button {
+    padding: 8px 12px;
+    font-size: 0.92rem;
+}
+
 button {
-    background-color: var(--color-red-700);
+    background-color: #8fa69f;
     color: #fff;
     border: none;
     padding: 10px 16px;
@@ -76,6 +318,17 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.dashboard-button {
+    background-color: #ffffff;
+    color: #000000;
+    border: none;
+    padding: 10px 16px;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s
+}
+
 .del-btn {
     background-color: #dc3545;
 }
@@ -85,11 +338,23 @@ button:disabled {
 }
 
 .success-btn {
-    background-color: #198754;
+    background-color: #8fa69f;
 }
 
 .success-btn:hover {
-    background-color: #157347;
+    background-color: #7d968f;
+}
+
+.rentals-pay-btn {
+    background-color: #ffffff;
+    color: #4f895a;
+    border: 2px solid #d9e7de;
+    font-weight: 700;
+}
+
+.rentals-pay-btn:hover {
+    background-color: #f4f8f6;
+    color: #3f6f48;
 }
 
 .input-group {
@@ -104,11 +369,31 @@ button:disabled {
 
 input,
 select {
+    background-color: #d4d4d4;
+    color: black;
     width: 100%;
-    padding: 8px;
+    padding: 12px;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
+}
+.provider-dashboard-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 16px 28px 24px;
+}
+
+.analytics-summary{
+    font-size: 18px;
+}
+.total-revenue {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #e8f5e9;
+    color: black;
+    border-radius: 4px;
 }
 
 .data-table {
@@ -120,6 +405,8 @@ select {
 
 .data-table th,
 .data-table td {
+    color: #66897f;
+    font-weight: 700;
     border: 1px solid #eee;
     padding: 12px;
     text-align: left;
@@ -136,6 +423,25 @@ select {
     color: #2e7d32;
     border-radius: 4px;
     margin-bottom: 20px;
+}
+
+.account-banner {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fff4d6 0%, #ffe8f2 100%);
+    color: #7a435d;
+    border: 1px solid #ffd4e4;
+    box-shadow: 0 10px 25px rgba(255, 199, 220, 0.28);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.account-banner-error {
+    background: linear-gradient(135deg, #ffe3e3 0%, #ffd6d6 100%);
+    color: #8a1f2d;
+    border-color: #f3a8b2;
+    box-shadow: 0 10px 25px rgba(220, 53, 69, 0.12);
 }
 
 .error {

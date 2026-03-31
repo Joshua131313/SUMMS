@@ -35,8 +35,8 @@ const Login = () => {
 
     return (
         <AuthLayout
-            title="Sign in with email"
-            subtitle="Make a new doc to bring your words, data, and teams together."
+            title="Sign In"
+            subtitle="Welcome back! Access your rides, parking, and transit instantly."
             footerText="Don't have an account?"
             footerLinkText="Register"
             footerLinkTo="/register"
