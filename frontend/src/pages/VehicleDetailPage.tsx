@@ -50,6 +50,21 @@ const VehicleDetailPage = () => {
             <div style={{display: "grid",gridTemplateColumns: "1fr 1fr"}}>
             <div className="card">
                 <h3>{vehicle.car?.model || (vehicle.bike ? 'City Bike' : 'Electric Scooter')}</h3>
+                {(vehicle.car?.fuelType === 'electric' || vehicle.scooter?.fuelType === 'electric') && (
+                    <span style={{
+                        background: '#d1fae5',
+                        color: '#065f46',
+                        fontSize: 12,
+                        padding: '2px 10px',
+                        borderRadius: 99,
+                        fontWeight: 500,
+                        display: 'inline-block',
+                        marginBottom: 8
+                    }}>
+                    Zero emissions
+                    </span>
+                    )}
+               
                 <p>Price per minute: ${vehicle.costPerMinute}</p>
                 <p>Availability: {vehicle.availability ? 'Available' : 'Currently Rented'}</p>
             </div>

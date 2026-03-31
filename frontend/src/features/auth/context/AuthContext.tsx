@@ -15,6 +15,7 @@ export interface UserProfile {
     balance: number;
     city: string | null;
     preferredMobility: string | null;
+    totalCo2Kg: number;
 }
 
 interface AuthContextType {
