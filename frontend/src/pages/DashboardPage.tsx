@@ -1,8 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
-import { supabase } from '../lib/supabase';
-import api from '../lib/api';
 import Button from '../components/ui/Button/Button';
 
 const DashboardPage = () => {
@@ -11,11 +8,11 @@ const DashboardPage = () => {
 
     return (
         <div className="page-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 className="text-5xl font-bold mb-12">Welcome To SUMMS</h1>
+            <div style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <h1 className="text-3xl font-bold mb-12">Welcome to SUMMS!</h1>
+                <h1 className="text-3xl font-bold mb-12">What would you like to do today?</h1>
             </div>
-
-            <p>Logged in as: {user?.email} ({profile?.role || 'CLIENT'})</p>
+            
 
             {/* Travel Recommendations Section */}
             {profile?.preferredMobility && profile?.city && (
@@ -38,35 +35,29 @@ const DashboardPage = () => {
                 </div>
             )}
 
-            <div className="grid" style={{ marginTop: 30 }}>
-                <div className="card">
-                    <h3>Vehicle Rentals</h3>
+            <div className="dashboard-card-row" style={{ marginTop: 30 }}>
+                <div className="card dashboard-card">
+                    <h3>Rent a Vehicle</h3>
                     <p>Find nearby bikes, scooters, and cars.</p>
-                    <Link to="/vehicles"><button>Search Vehicles</button></Link>
+                    <Link to="/vehicles"><button className ="dashboard-button">Search Vehicles</button></Link>
                 </div>
 
-                <div className="card">
-                    <h3>My Bookings</h3>
-                    <p>Manage your active and past rentals.</p>
-                    <Link to="/rentals/current"><button>View Rentals</button></Link>
-                </div>
-
-                <div className="card">
-                    <h3>Parking Spots</h3>
+                <div className="card dashboard-card">
+                    <h3>Book a Parking Spots</h3>
                     <p>Find & reserve parking in the city.</p>
-                    <Link to="/parking"><button>Find Parking</button></Link>
+                    <Link to="/parking"><button className ="dashboard-button">Find Parking</button></Link>
                 </div>
 
-                <div className="card">
-                    <h3>Public Transport</h3>
+                <div className="card dashboard-card">
+                    <h3>View Transit</h3>
                     <p>Check schedules for buses, trams & trains.</p>
-                    <Link to="/public-transport"><button>View Schedules</button></Link>
+                    <Link to="/public-transport"><button className ="dashboard-button">View Schedules</button></Link>
                 </div>
-
-                <div className="card">
-                    <h3>Account Settings</h3>
-                    <p>Update your profile and details.</p>
-                    <Link to="/account"><button>Settings</button></Link>
+                <div className="card dashboard-card">
+                    <h3>View My Bookings</h3>
+                    <p>Manage your active and past rentals.</p>
+                    <Link to="/rentals/current"><button className="dashboard-button"
+                    >View Rentals</button></Link>
                 </div>
 
                 {profile?.role === 'ADMIN' && (

@@ -128,35 +128,39 @@ const AccountPage = () => {
         }
     }, [profile]);
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!paymentDataEmpty && !isPaymentDataValid()) {
-            setMsg('Invalid credit card details. Use 16-digit card number, 3-digit verification code, valid names, and a non-expired date.');
-            return;
-        }
-
+    const handleSaveProfile = async () => {
         try {
             await api.put('/me', formData);
             if (profile) {
-                if (paymentDataEmpty) {
-                    localStorage.removeItem(getPaymentStorageKey(profile.id));
-                } else {
-                    localStorage.setItem(getPaymentStorageKey(profile.id), JSON.stringify(paymentData));
-                }
-
                 if (profile.role === 'MOBILITY_PROVIDER') {
                     localStorage.setItem(getProviderCompanyStorageKey(profile.id), providerCompanyName.trim());
                 } else {
                     localStorage.removeItem(getProviderCompanyStorageKey(profile.id));
                 }
             }
-            setMsg('Profile updated successfully!');
-            setTimeout(() => window.location.reload(), 1000);
+            setMsg('Profile saved successfully.');
         } catch (err: any) {
-            setMsg(`Failed to map update: ${err.message}`);
+            setMsg(`Failed to update account: ${err.response?.data?.error || err.response?.data?.details || err.message}`);
         }
-    }
+    };
+
+    const handleSavePayment = () => {
+        if (!profile) return;
+
+        if (!paymentDataEmpty && !isPaymentDataValid()) {
+            setMsg('Invalid credit card details. Use 16-digit card number, 3-digit verification code, valid names, and a non-expired date.');
+            return;
+        }
+
+        if (paymentDataEmpty) {
+            localStorage.removeItem(getPaymentStorageKey(profile.id));
+            setMsg('Payment details removed.');
+            return;
+        }
+
+        localStorage.setItem(getPaymentStorageKey(profile.id), JSON.stringify(paymentData));
+        setMsg('Payment details updated successfully!');
+    };
 
     const handleRemoveCreditCard = () => {
         if (!profile) return;
@@ -179,128 +183,144 @@ const AccountPage = () => {
     };
 
     if (!profile) return <div>Loading account...</div>;
+    const isErrorMsg = msg.startsWith('Failed') || msg.startsWith('Invalid');
 
     return (
-        <div className="page-container">
-            <h1 className="text-5xl font-bold mb-12">Account Settings</h1>
-            <div style={{ marginBottom: 40}}>
-                <p>Role: <strong>{profile.role}</strong></p>
-                <p>Email: {profile.email}</p>
-            </div>
+        <div className="page-container account-page">
+            <h1 className="text-4xl font-bold mb-8">Account Settings</h1>
 
-            {msg && <p className="status-msg">{msg}</p>}
+            {msg && (
+                <div className={isErrorMsg ? 'account-banner account-banner-error' : 'account-banner'}>
+                    {isErrorMsg ? 'Heads up: ' : 'All set: '}
+                    {msg}
+                </div>
+            )}
 
-            <form onSubmit={handleSave} className="form-card">
-                <div>
-                    <label>First Name</label><br />
-                    <input value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} />
-                </div>
-                <div>
-                    <label>Last Name</label><br />
-                    <input value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} />
-                </div>
-                <div>
-                    <label>Username</label><br />
-                    <input value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} />
-                </div>
-                <div>
-                    <label>City</label><br />
-                    <input value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} />
-                </div>
-                <div>
-                    <label>Preferred Mobility</label><br />
-                    <select value={formData.preferredMobility} onChange={e => setFormData({ ...formData, preferredMobility: e.target.value })}>
-                        <option value="CAR">Car</option>
-                        <option value="BIKE">Bike</option>
-                        <option value="SCOOTER">Scooter</option>
-                    </select>
-                </div>
-
-                {profile.role === 'MOBILITY_PROVIDER' && (
+            <div className="account-form-layout">
+                <div className="form-card account-form-card">
+                    <h3>Account Details</h3>
                     <div>
-                        <label>Mobility Provider Company Name</label><br />
-                        <input
-                            value={providerCompanyName}
-                            onChange={e => setProviderCompanyName(e.target.value)}
-                            placeholder="Enter registered company name"
-                        />
-                        <button
-                            type="button"
-                            className="del-btn"
-                            style={{ marginTop: 10 }}
-                            onClick={handleRemoveProviderCompanyName}
-                        >
-                            Remove Mobility Provider Company Name
-                        </button>
+                        <label>First Name</label><br />
+                        <input value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} />
                     </div>
-                )}
+                    <div>
+                        <label>Last Name</label><br />
+                        <input value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} />
+                    </div>
+                    <div>
+                        <label>Username</label><br />
+                        <input value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} />
+                    </div>
+                    <div>
+                        <label>City</label><br />
+                        <input value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} />
+                    </div>
+                    <div>
+                        <label>Preferred Mobility</label><br />
+                        <select value={formData.preferredMobility} onChange={e => setFormData({ ...formData, preferredMobility: e.target.value })}>
+                            <option value="CAR">Car</option>
+                            <option value="BIKE">Bike</option>
+                            <option value="SCOOTER">Scooter</option>
+                        </select>
+                    </div>
 
-                <h3 style={{ marginTop: 20 }}>Credit Card Details</h3>
-                {!paymentDataEmpty && (hasMissingCardFields || hasPaymentValidationErrors) && (
-                    <div className="card-error-banner">
-                        Complete valid credit card details before saving your account.
+                    {profile.role === 'MOBILITY_PROVIDER' && (
+                        <div>
+                            <label>Mobility Provider Company Name</label><br />
+                            <input
+                                value={providerCompanyName}
+                                onChange={e => setProviderCompanyName(e.target.value)}
+                                placeholder="Enter registered company name"
+                            />
+                            <button
+                                type="button"
+                                className="del-btn"
+                                style={{ marginTop: 10 }}
+                                onClick={handleRemoveProviderCompanyName}
+                            >
+                                Remove Mobility Provider Company Name
+                            </button>
+                        </div>
+                    )}
+
+                    <button type="button" style={{ marginTop: 10 }} onClick={handleSaveProfile}>
+                        Save Profile
+                    </button>
+                </div>
+
+                <div className="form-card account-form-card">
+                    <h3>Credit Card Details</h3>
+                    {!paymentDataEmpty && (hasMissingCardFields || hasPaymentValidationErrors) && (
+                        <div className="card-error-banner">
+                            Complete valid credit card details before saving your account.
+                        </div>
+                    )}
+                    <div>
+                        <label>Card Number (16 digits)</label><br />
+                        <input
+                            className={hasAnyCardInput && !/^\d{16}$/.test(paymentData.cardNumber) ? 'input-invalid' : ''}
+                            value={paymentData.cardNumber}
+                            maxLength={16}
+                            onChange={e => setPaymentData({ ...paymentData, cardNumber: e.target.value.replace(/\D/g, '') })}
+                        />
+                        {paymentValidationErrors.cardNumber && <p className="error">{paymentValidationErrors.cardNumber}</p>}
                     </div>
-                )}
-                <div>
-                    <label>Card Number (16 digits)</label><br />
-                    <input
-                        className={hasAnyCardInput && !/^\d{16}$/.test(paymentData.cardNumber) ? 'input-invalid' : ''}
-                        value={paymentData.cardNumber}
-                        maxLength={16}
-                        onChange={e => setPaymentData({ ...paymentData, cardNumber: e.target.value.replace(/\D/g, '') })}
-                    />
-                    {paymentValidationErrors.cardNumber && <p className="error">{paymentValidationErrors.cardNumber}</p>}
+                    <div>
+                        <label>First Name</label><br />
+                        <input
+                            className={hasAnyCardInput && paymentData.cardFirstName.trim().length === 0 ? 'input-invalid' : ''}
+                            value={paymentData.cardFirstName}
+                            onChange={e => setPaymentData({ ...paymentData, cardFirstName: e.target.value })}
+                        />
+                        {paymentValidationErrors.cardFirstName && <p className="error">{paymentValidationErrors.cardFirstName}</p>}
+                    </div>
+                    <div>
+                        <label>Last Name</label><br />
+                        <input
+                            className={hasAnyCardInput && paymentData.cardLastName.trim().length === 0 ? 'input-invalid' : ''}
+                            value={paymentData.cardLastName}
+                            onChange={e => setPaymentData({ ...paymentData, cardLastName: e.target.value })}
+                        />
+                        {paymentValidationErrors.cardLastName && <p className="error">{paymentValidationErrors.cardLastName}</p>}
+                    </div>
+                    <div>
+                        <label>Verification Code (3 digits)</label><br />
+                        <input
+                            className={hasAnyCardInput && !/^\d{3}$/.test(paymentData.cardVerificationCode) ? 'input-invalid' : ''}
+                            value={paymentData.cardVerificationCode}
+                            maxLength={3}
+                            onChange={e => setPaymentData({ ...paymentData, cardVerificationCode: e.target.value.replace(/\D/g, '') })}
+                        />
+                        {paymentValidationErrors.cardVerificationCode && <p className="error">{paymentValidationErrors.cardVerificationCode}</p>}
+                    </div>
+                    <div>
+                        <label>Expiration Date</label><br />
+                        <input
+                            className={hasAnyCardInput && (Boolean(paymentValidationErrors.expirationDate) || !paymentData.expirationDate) ? 'input-invalid' : ''}
+                            type="month"
+                            value={paymentData.expirationDate}
+                            onChange={e => setPaymentData({ ...paymentData, expirationDate: e.target.value })}
+                        />
+                        {paymentValidationErrors.expirationDate && <p className="error">{paymentValidationErrors.expirationDate}</p>}
+                    </div>
+                    <button
+                        type="button"
+                        style={{ marginTop: 10 }}
+                        onClick={handleSavePayment}
+                        disabled={!paymentDataEmpty && (hasPaymentValidationErrors || !isPaymentDataValid())}
+                    >
+                        Save Payment Details
+                    </button>
+                    <button
+                        type="button"
+                        className="del-btn"
+                        style={{ marginTop: 10 }}
+                        onClick={handleRemoveCreditCard}
+                    >
+                        Remove Credit Card
+                    </button>
                 </div>
-                <div>
-                    <label>First Name</label><br />
-                    <input
-                        className={hasAnyCardInput && paymentData.cardFirstName.trim().length === 0 ? 'input-invalid' : ''}
-                        value={paymentData.cardFirstName}
-                        onChange={e => setPaymentData({ ...paymentData, cardFirstName: e.target.value })}
-                    />
-                    {paymentValidationErrors.cardFirstName && <p className="error">{paymentValidationErrors.cardFirstName}</p>}
-                </div>
-                <div>
-                    <label>Last Name</label><br />
-                    <input
-                        className={hasAnyCardInput && paymentData.cardLastName.trim().length === 0 ? 'input-invalid' : ''}
-                        value={paymentData.cardLastName}
-                        onChange={e => setPaymentData({ ...paymentData, cardLastName: e.target.value })}
-                    />
-                    {paymentValidationErrors.cardLastName && <p className="error">{paymentValidationErrors.cardLastName}</p>}
-                </div>
-                <div>
-                    <label>Verification Code (3 digits)</label><br />
-                    <input
-                        className={hasAnyCardInput && !/^\d{3}$/.test(paymentData.cardVerificationCode) ? 'input-invalid' : ''}
-                        value={paymentData.cardVerificationCode}
-                        maxLength={3}
-                        onChange={e => setPaymentData({ ...paymentData, cardVerificationCode: e.target.value.replace(/\D/g, '') })}
-                    />
-                    {paymentValidationErrors.cardVerificationCode && <p className="error">{paymentValidationErrors.cardVerificationCode}</p>}
-                </div>
-                <div>
-                    <label>Expiration Date</label><br />
-                    <input
-                        className={hasAnyCardInput && (Boolean(paymentValidationErrors.expirationDate) || !paymentData.expirationDate) ? 'input-invalid' : ''}
-                        type="month"
-                        value={paymentData.expirationDate}
-                        onChange={e => setPaymentData({ ...paymentData, expirationDate: e.target.value })}
-                    />
-                    {paymentValidationErrors.expirationDate && <p className="error">{paymentValidationErrors.expirationDate}</p>}
-                </div>
-                <button type="submit" style={{ marginTop: 10 }} disabled={!paymentDataEmpty && (hasPaymentValidationErrors || !isPaymentDataValid())}>
-                    Save Profile
-                </button>
-                <button
-                    type="button"
-                    className="del-btn"
-                    style={{ marginTop: 10 }}
-                    onClick={handleRemoveCreditCard}
-                >
-                    Remove Credit Card
-                </button>
-            </form>
+            </div>
         </div>
     )
 }

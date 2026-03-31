@@ -62,7 +62,7 @@ const Register = () => {
     return (
         <AuthLayout
             title="Create an account"
-            subtitle="Start building with SUMMS today."
+            subtitle="Start your journey with seamless access to all your city mobility services."
             footerText="Already have an account?"
             footerLinkText="Login"
             footerLinkTo="/login"
