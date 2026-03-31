@@ -18,7 +18,6 @@ const Navbar = () => {
 
     const navigation = [
         { name: 'Dashboard', to: '/' },
-        { name: 'Vehicles', to: '/vehicles' },
         { name: 'My Rentals', to: '/rentals/current' },
         { name: 'Account', to: '/account' },
     ];
@@ -63,7 +62,7 @@ const Navbar = () => {
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className="appearance-none !bg-red-600 !text-white !border-0 px-4 py-2 rounded-md text-sm font-medium hover:!bg-red-700 active:!bg-red-700 focus:!outline-none focus:!ring-2 focus:!ring-red-400 focus:!ring-offset-2 transition-colors"
+                        className="appearance-none !bg-[#4f895a] !text-white !border-0 px-4 py-2 rounded-md text-sm font-medium hover:!bg-[#45784f] active:!bg-[#45784f] focus:!outline-none focus:!ring-2 focus:!ring-[#6ca876] focus:!ring-offset-2 transition-colors"
                     >
                         Logout
                     </button>
