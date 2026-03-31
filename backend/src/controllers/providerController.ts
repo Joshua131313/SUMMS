@@ -86,12 +86,16 @@ export const getManageableVehicles = async (req: Request, res: Response) => {
 
 export const addVehicle = async (req: Request, res: Response) => {
     try {
-        const { providerId, costPerMinute, type, model } = req.body;
+        const { providerId, costPerMinute, type, model, fuelType } = req.body;
         const isAdmin = req.user?.role === 'ADMIN';
         const targetProviderId = isAdmin ? providerId : req.user!.id;
 
-        if (!targetProviderId || !costPerMinute || !type) {
-            return res.status(400).json({ error: 'Missing required fields: providerId, costPerMinute, type' });
+        if (!targetProviderId || !costPerMinute || !fuelType) {
+            return res.status(400).json({ error: 'Missing required field: fuelType' });
+        }
+
+        if ((type === 'CAR' || type === 'SCOOTER') && !model) {
+            return res.status(400).json({ error: 'Missing required field: model' });
         }
 
         const provider = await prisma.mobilityProvider.findUnique({
@@ -107,7 +111,8 @@ export const addVehicle = async (req: Request, res: Response) => {
             providerId: targetProviderId,
             costPerMinute: Number(costPerMinute),
             type,
-            model
+            model,
+            fuelType
         });
 
         res.status(201).json(transport);
@@ -119,7 +124,7 @@ export const addVehicle = async (req: Request, res: Response) => {
 export const updateVehicle = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
-        const { costPerMinute, availability, model } = req.body;
+        const { costPerMinute, availability, model, fuelType } = req.body;
         const isAdmin = req.user?.role === 'ADMIN';
 
         const existingTransport = await prisma.transport.findUnique({
@@ -141,7 +146,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
             where: { id },
             data: {
                 ...(costPerMinute !== undefined && { costPerMinute }),
-                ...(model && transportCar ? { car: { update: { model } } } : {})
+                ...(model && transportCar ? { car: { update: { model } } } : {}),
             },
             include: { car: true, bike: true, scooter: true, provider: true }
         });

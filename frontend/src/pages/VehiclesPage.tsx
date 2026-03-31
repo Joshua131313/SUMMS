@@ -92,6 +92,11 @@ const VehiclesPage = () => {
                   <h3 className="text-lg font-semibold mb-2">
                     {v.car?.model || (v.bike ? 'Bike' : 'Scooter')}
                   </h3>
+                  {(v.car?.fuelType === 'electric' || v.scooter?.fuelType === 'electric' || v.bike) && (
+                  <span className="inline-block bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2">
+                    Zero emissions
+                  </span>
+                  )}
                   <p className="text-sm text-gray-600 mb-1">
                     Type: {v.car ? 'Car' : v.bike ? 'Bike' : 'Scooter'}
                   </p>
