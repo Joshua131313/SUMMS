@@ -144,6 +144,37 @@ p {
     color: #4f895a;
 }
 
+.rentals-section-title {
+    margin-bottom: 10px;
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #4f895a;
+}
+
+.rentals-current-card {
+    background: #8fc498;
+    color: #fff;
+    border: 1px solid #e1e4e8;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.rentals-current-card h3 {
+    color: #4a5a62;
+}
+
+.rentals-active-card {
+    background: linear-gradient(135deg, #fff4d6 0%, #ffe8f2 100%);
+    color: #7a435d;
+    border: 1px solid #ffd4e4;
+    box-shadow: 0 10px 25px rgba(255, 199, 220, 0.28);
+}
+
+.rentals-active-card h3 {
+    color: #7a435d;
+}
+
 .account-page label {
     display: block;
     margin-bottom: 2px;
