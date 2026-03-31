@@ -115,6 +115,13 @@ const RentalsPage = () => {
     return (
         <div className="page-container">
             <h1 className="text-5xl font-bold mb-12">My Rentals</h1>
+
+            <div className = "form-card" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                    <p style={{ color: '#6c757d', fontSize: 13, margin: 0}}> Your total CO2 emissions</p>
+                    <p style={{ fontSize: 24, fontWeight: 500, margin: 0 }}> {(profile?.totalCo2Kg || 0).toFixed(2)} kg CO2</p>
+                </div>
+            </div>
             {error && <p className="error">{error}</p>}
             {paymentConfirmation && <p className="status-msg">{paymentConfirmation}</p>}
             {paymentError && (
@@ -133,6 +140,7 @@ const RentalsPage = () => {
                             <p>Date: {new Date(b.bookingDate).toLocaleDateString()}</p>
                             <p>Period: {new Date(b.startTime).toLocaleTimeString()} - {new Date(b.endTime).toLocaleTimeString()}</p>
                             {b.status === 'COMPLETED' && <p>Cost: ${b.totalCost}</p>}
+                            {b.co2Kg != null && <p style={{ color: '#6c757d', fontSize: 13 }}>CO2: {b.co2Kg.toFixed(2)} kg</p>}
 
                             <div style={{ marginTop: "auto" }}>
                                 {b.status === 'RESERVED' && <button onClick={() => handleAction(b.id, 'start')}>Start Rental</button>}
@@ -158,6 +166,7 @@ const RentalsPage = () => {
                             <p>Date: {new Date(b.bookingDate).toLocaleDateString()}</p>
                             <p>Period: {new Date(b.startTime).toLocaleTimeString()} - {new Date(b.endTime).toLocaleTimeString()}</p>
                             {b.status === 'COMPLETED' && <p>Cost: ${b.totalCost}</p>}
+                            {b.co2Kg != null && <p style={{ color: '#6c757d', fontSize: 13 }}>CO2: {b.co2Kg.toFixed(2)} kg</p>}
                             {b.payment && <span style={{ color: 'green', fontWeight: 'bold' }}>✓ Paid</span>}
                         </div>
                     ))}

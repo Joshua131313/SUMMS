@@ -178,15 +178,37 @@ export const endRental = async (req: Request, res: Response) => {
             preferredMobility: booking.client.preferredMobility
         });
 
+        const AVERAGE_SPEED_KMH = 30;
+        const distanceKm = (durationMinutes / 60) * AVERAGE_SPEED_KMH;
+
+        let emissionFactorGPerKm = 0;
+        if(booking.transport.car){
+            emissionFactorGPerKm = booking.transport.car.emissionFactorGPerKm;
+        }
+        else if(booking.transport.scooter){
+            emissionFactorGPerKm = booking.transport.scooter.emissionFactorGPerKm;
+        }
+
+        const co2Kg = (distanceKm * emissionFactorGPerKm) / 1000;
+
         const updatedBooking = await prisma.booking.update({
             where: { id: bookingId },
             data: {
                 endTime: actualEndTime,
                 duration: durationMinutes,
                 totalCost: pricing.total,
-                status: 'COMPLETED'
+                status: 'COMPLETED',
+                distanceKm,
+                co2Kg
             }
         });
+
+        await prisma.userProfile.update({
+            where: { id: userId },
+            data: {
+                totalCo2Kg: { increment: co2Kg },
+            }
+        })
 
         await vehicleAvailabilityService.updateAvailability({
             transportId: booking.transportId,
@@ -308,3 +330,31 @@ export const payRental = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to process payment', details: error.message });
     }
 };
+
+export const getCo2Summary = async (req: Request, res: Response) => {
+    try {
+        const bookings = await prisma.booking.findMany({
+            where: {status: 'COMPLETED', co2Kg: {not: null}},
+            include: {transport: {
+                include: { 
+                    car: true, bike: true, scooter: true}}
+            }
+
+        });
+
+        const summary = bookings.reduce((acc: Record<string, number>, booking: typeof bookings[0]) => {
+            const type = booking.transport.car ? 'car'
+                : booking.transport.scooter ? 'scooter'
+                : 'bike';
+            acc[type] = (acc[type] || 0) + (booking.co2Kg || 0);
+            acc.total = (acc.total || 0) + (booking.co2Kg || 0);
+            return acc;
+        }, {} as Record<string, number>);
+
+        res.json(summary);
+    }
+    catch (error: any) {
+        res.status(500).json({ error: 'Failed to fetch CO2 summary', details: error.message });
+    }
+};
+
