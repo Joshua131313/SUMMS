@@ -25,8 +25,10 @@ const ProviderDashboard = () => {
         providerId: '',
         costPerMinute: 0,
         type: 'CAR',
-        model: ''
+        model: '',
+        fuelType: 'petrol'
     });
+    const [co2Summary, setCo2Summary] = useState<Record<string, number>>({});
     const mobilityProviderMissingCompany = profile?.role === 'MOBILITY_PROVIDER' && !providerCompanyName.trim();
 
     const getProviderCompanyStorageKey = (userId: string) => `summs_provider_company_${userId}`;
@@ -53,6 +55,10 @@ const ProviderDashboard = () => {
 
                 const vRes = await api.get('/provider/vehicles');
                 setVehicles(vRes.data);
+                
+                const co2Res = await api.get('/bookings/co2-summary');
+                setCo2Summary(co2Res.data);
+
                 return;
             }
 
@@ -136,7 +142,7 @@ const ProviderDashboard = () => {
     return (
         <div className="page-container">
             <h1 className="text-5xl font-bold mb-12">Provider Dashboard</h1>
-
+            
             {error && <p className="error">{error}</p>}
 
             <form onSubmit={handleAdd} className="form-card" style={{ marginBottom: 30 }}>
@@ -178,6 +184,16 @@ const ProviderDashboard = () => {
                     <div className="input-group">
                         <label>Model</label>
                         <input value={newVehicle.model} onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })} required />
+                    </div>
+                )}
+                {(newVehicle.type === 'CAR' || newVehicle.type === 'SCOOTER') && (
+                    <div className="input-group">
+                        <label>Fuel Type</label>
+                        <select value={newVehicle.fuelType} onChange={e => setNewVehicle({ ...newVehicle, fuelType: e.target.value })}>
+                            <option value="petrol">Petrol</option>
+                            <option value="diesel">Diesel</option>
+                            <option value="electric">Electric</option>
+                        </select>
                     </div>
                 )}
                 <div className="input-group">
