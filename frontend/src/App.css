@@ -175,6 +175,17 @@ p {
     color: #7a435d;
 }
 
+.parking-reserved-card {
+    background: linear-gradient(135deg, #fff4d6 0%, #ffe8f2 100%);
+    color: #7a435d;
+    border: 1px solid #ffd4e4;
+    box-shadow: 0 10px 25px rgba(255, 199, 220, 0.28);
+}
+
+.parking-reserved-card h3 {
+    color: #7a435d;
+}
+
 .account-page label {
     display: block;
     margin-bottom: 2px;
