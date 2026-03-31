@@ -187,12 +187,7 @@ const ProviderDashboard = () => {
                             <input value={newVehicle.model} onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })} required />
                         </div>
                     )}
-                    <div className="input-group">
-                        <label>Cost per Minute ($)</label>
-                        <input type="number" step="0.01" value={newVehicle.costPerMinute} onChange={e => setNewVehicle({ ...newVehicle, costPerMinute: parseFloat(e.target.value) })} required />
-                    </div>
-                )}
-                {(newVehicle.type === 'CAR' || newVehicle.type === 'SCOOTER') && (
+                    {(newVehicle.type === 'CAR' || newVehicle.type === 'SCOOTER') && (
                     <div className="input-group">
                         <label>Fuel Type</label>
                         <select value={newVehicle.fuelType} onChange={e => setNewVehicle({ ...newVehicle, fuelType: e.target.value })}>
