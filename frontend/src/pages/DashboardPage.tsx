@@ -1,36 +1,113 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BusFront, CalendarCheck2, CarFront, SquareParking } from 'lucide-react';
+import { BusFront, CalendarCheck2, CarFront, SquareParking, UserRound } from 'lucide-react';
 import { useAuth } from '../features/auth/context/AuthContext';
 import Button from '../components/ui/Button/Button';
+import api from '../lib/api';
 
 const DashboardPage = () => {
-    const { user, profile, recommendations, loadingRecommendation } = useAuth();
+    const { profile, recommendations, loadingRecommendation } = useAuth();
+    const [providerAnalytics, setProviderAnalytics] = useState<any>(null);
+    const [loadingProviderAnalytics, setLoadingProviderAnalytics] = useState(false);
 
+    useEffect(() => {
+        const loadProviderAnalytics = async () => {
+            if (profile?.role !== 'MOBILITY_PROVIDER' && profile?.role !== 'ADMIN') {
+                setProviderAnalytics(null);
+                return;
+            }
+
+            setLoadingProviderAnalytics(true);
+            try {
+                const res = await api.get('/admin/analytics/rentals');
+                setProviderAnalytics(res.data);
+            } catch (error) {
+                console.error('Failed to load provider analytics', error);
+            } finally {
+                setLoadingProviderAnalytics(false);
+            }
+        };
+
+        if (profile) {
+            loadProviderAnalytics();
+        }
+    }, [profile]);
+
+    let dashboardHighlight: React.ReactNode = null;
+
+    if (profile?.role === 'MOBILITY_PROVIDER') {
+        dashboardHighlight = (
+            <div className="card dashboard-recommendation-card">
+                <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Rental Analytics Summary</h3>
+                {loadingProviderAnalytics ? (
+                    <p>Loading your analytics...</p>
+                ) : (
+                    <div className="flex-col">
+                        <p style={{ fontSize: '18px' }}>
+                            Total Rentals: <strong>{providerAnalytics?.summary?.totalRentals || 0}</strong> | Completed Rentals:{' '}
+                            <strong>{providerAnalytics?.summary?.completedRentals || 0}</strong> | Total Revenue:{' '}
+                            <strong>${providerAnalytics?.summary?.totalRevenue || 0}</strong>
+                        </p>
+                        <p style={{ fontSize: '16px', marginTop: 8 }}>
+                            Most Used Mobility Option:{' '}
+                            <strong>{providerAnalytics?.requiredMetrics?.mostUsedMobilityOption || 'N/A'}</strong>
+                        </p>
+                        <Button style={{ marginTop: 20 }}>
+                            <Link to="/admin/analytics">View full analytics</Link>
+                        </Button>
+                    </div>
+                )}
+            </div>
+        );
+    } else if (profile?.role === 'ADMIN') {
+        dashboardHighlight = (
+            <div className="card dashboard-recommendation-card">
+                <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Rental Analytics Summary</h3>
+                {loadingProviderAnalytics ? (
+                    <p>Loading your analytics...</p>
+                ) : (
+                    <div className="flex-col">
+                        <p style={{ fontSize: '18px' }}>
+                            Total Rentals: <strong>{providerAnalytics?.summary?.totalRentals || 0}</strong> | Completed Rentals:{' '}
+                            <strong>{providerAnalytics?.summary?.completedRentals || 0}</strong> | Total Revenue:{' '}
+                            <strong>${providerAnalytics?.summary?.totalRevenue || 0}</strong>
+                        </p>
+                        <p style={{ fontSize: '16px', marginTop: 8 }}>
+                            Most Used Mobility Option:{' '}
+                            <strong>{providerAnalytics?.requiredMetrics?.mostUsedMobilityOption || 'N/A'}</strong>
+                        </p>
+                        <Button style={{ marginTop: 20 }}>
+                            <Link to="/admin">View full analytics</Link>
+                        </Button>
+                    </div>
+                )}
+            </div>
+        );
+    } else if (profile?.preferredMobility && profile?.city) {
+        dashboardHighlight = (
+            <div className="card dashboard-recommendation-card">
+                <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>✨ Personalized Travel Recommendations</h3>
+                {loadingRecommendation ? (
+                    <p>Loading your recommendations...</p>
+                ) : recommendations.length > 0 ? (
+                    <div className="flex-col">
+                        <p style={{ fontSize: '18px' }}>
+                            Good news! We found <strong>{recommendations.length} available {profile.preferredMobility.toLowerCase()}s</strong> in <strong>{profile.city}</strong> based on your preferences.
+                        </p>
+                        <Button style={{ marginTop: 20 }}>
+                            <Link to="/vehicles">View them now</Link>
+                        </Button>
+                    </div>
+                ) : (
+                    <p>Currently, there is no availability for {profile.preferredMobility.toLowerCase()}s in {profile.city}. Try checking other vehicle types.</p>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="page-container dashboard-page">
-            
-
-            {/* Travel Recommendations Section */}
-            {profile?.preferredMobility && profile?.city && (
-                <div className="card dashboard-recommendation-card">
-                    <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>✨ Personalized Travel Recommendations</h3>
-                    {loadingRecommendation ? (
-                        <p>Loading your recommendations...</p>
-                    ) : recommendations.length > 0 ? (
-                        <div className="flex-col">
-                            <p style={{ fontSize: '18px' }}>
-                                Good news! We found <strong>{recommendations.length} available {profile.preferredMobility.toLowerCase()}s</strong> in <strong>{profile.city}</strong> based on your preferences.
-                            </p>
-                            <Button style={{ marginTop: 20 }}>
-                                <Link to="/vehicles">View them now</Link>
-                            </Button>
-                        </div>
-                    ) : (
-                        <p>Currently, there is no availability for {profile.preferredMobility.toLowerCase()}s in {profile.city}. Try checking other vehicle types.</p>
-                    )}
-                </div>
-            )}
+            {dashboardHighlight}
 
             <div className="dashboard-card-row" style={{ marginTop: 30 }}>
                 <div className="card dashboard-card">
@@ -62,7 +139,8 @@ const DashboardPage = () => {
                 </div>
 
                 {profile?.role === 'ADMIN' && (
-                    <div className="card" style={{ border: '2px solid #5a02e8' }}>
+                    <div className="card dashboard-card admin-card" style={{ border: '4px solid #acd2cd' }}>
+                        <UserRound className="dashboard-admin-card-icon" strokeWidth={2.2} />
                         <h3>Admin Tools</h3>
                         <p>View analytics and manage roles.</p>
                         <Link to="/admin"><button>Admin Dashboard</button></Link>
@@ -70,10 +148,11 @@ const DashboardPage = () => {
                 )}
 
                 {profile?.role === 'MOBILITY_PROVIDER' && (
-                    <div className="card" style={{ border: '2px solid #5a02e8' }}>
-                        <h3>Provider Analytics</h3>
-                        <p>View analytics for your own vehicles.</p>
-                        <Link to="/admin/analytics"><button>View Analytics</button></Link>
+                    <div className="card dashboard-card mobility-card" style={{ border: '4px solid #acd2cd' }}>
+                        <UserRound className="dashboard-mobility-card-icon" strokeWidth={2.2} />
+                        <h3>Provider Tools</h3>
+                        <p>Manage your vehicles and review provider insights.</p>
+                        <Link to="/provider/vehicles"><button>Open Tools</button></Link>
                     </div>
                 )}
             </div>

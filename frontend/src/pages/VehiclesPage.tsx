@@ -99,6 +99,10 @@ const VehiclesPage = () => {
                     Price:{' '}
                     <span className="font-medium">${v.costPerMinute}/min</span>
                   </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Mobility Provider:{' '}
+                    <span className="font-medium">{v.provider?.name || 'Unknown Provider'}</span>
+                  </p>
                   <p className="text-sm">
                     Available:{' '}
                     <span

@@ -37,7 +37,7 @@ p {
 
 .card,
 .form-card {
-    background: #8fc498;
+    background: #91aca5;
     color: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -64,9 +64,9 @@ p {
 .dashboard-recommendation-card {
     width: min(92%, 1320px);
     margin: 20px auto 0;
-    border-left: 4px solid #4f895a;
+    border-left: 4px solid #acd2cd;
     background: #f6f6f6;
-    color: #4f895a;
+    color: #66897f;
 }
 
 .dashboard-card-row {
@@ -92,6 +92,13 @@ p {
     color: #ffffff;
 }
 
+.dashboard-admin-card-icon, .dashboard-mobility-card-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 4px;
+    color: #66897f;
+}
+
 .dashboard-card h3 {
     font-size: 1.35rem;
 }
@@ -103,6 +110,77 @@ p {
 
 .form-card {
     max-width: 500px;
+}
+
+.mobility-card, .admin-card {
+    background: linear-gradient(135deg, #fff4d6 0%, #ffe8f2 100%);
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    border: 1px solid #e1e4e8;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.mobility-card, .admin-card h3 {
+    font-size: 1.35rem;
+    color: #66897f;
+    font-weight: 700;
+}
+
+.mobility-card, .admin-card  p {
+    color: #8fa69f;
+    font-size: 0.98rem;
+    margin: 0;
+}
+
+.analytics-top-row {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.analytics-summary-card {
+    flex: 0 0 320px;
+}
+
+.analytics-vehicle-status-card {
+    flex: 1 1 auto;
+}
+
+.analytics-gateway-card {
+    flex: 0 0 280px;
+}
+
+.provider-dashboard-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.provider-dashboard-layout h3 {
+   font-size: 24px;
+   font-weight: 700;
+}
+.provider-dashboard-layout button {
+   background-color: white;
+   color: #66897f;
+   font-weight: 700;
+}
+
+.provider-form-card {
+    flex: 0 0 340px;
+}
+.provider-form-card input {
+    background-color: white;
+}
+.provider-vehicle-list-card {
+    flex: 1 1 auto;
+}
+
+.provider-vehicle-list-card h3 {
+    margin-bottom: 16px;
 }
 
 .account-form-layout {
@@ -141,7 +219,7 @@ p {
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
-    color: #4f895a;
+    color: #66897f;
 }
 
 .rentals-section-title {
@@ -150,11 +228,11 @@ p {
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
-    color: #4f895a;
+    color: #66897f;
 }
 
 .rentals-current-card {
-    background: #8fc498;
+    background: #acd2cd;
     color: #fff;
     border: 1px solid #e1e4e8;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -209,7 +287,7 @@ p {
 }
 
 button {
-    background-color: #4f895a;
+    background-color: #8fa69f;
     color: #fff;
     border: none;
     padding: 10px 16px;
@@ -275,6 +353,24 @@ select {
     border-radius: 4px;
     box-sizing: border-box;
 }
+.provider-dashboard-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 16px 28px 24px;
+}
+
+.analytics-summary{
+    font-size: 18px;
+}
+.total-revenue {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 120px;
+    padding: 10px;
+    background: #e8f5e9;
+    color: black;
+    border-radius: 4px;
+}
 
 .data-table {
     width: 100%;
@@ -285,6 +381,8 @@ select {
 
 .data-table th,
 .data-table td {
+    color: #66897f;
+    font-weight: 700;
     border: 1px solid #eee;
     padding: 12px;
     text-align: left;

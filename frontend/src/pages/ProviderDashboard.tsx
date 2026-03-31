@@ -134,125 +134,129 @@ const ProviderDashboard = () => {
     if (loading) return <div>Loading provider dashboard...</div>;
 
     return (
-        <div className="page-container">
+        <div className="provider-dashboard-container">
             <h1 className="text-5xl font-bold mb-12">Provider Dashboard</h1>
 
             {error && <p className="error">{error}</p>}
 
-            <form onSubmit={handleAdd} className="form-card" style={{ marginBottom: 30 }}>
-                <h3>Add New Vehicle</h3>
-                <div className="input-group">
-                    <label>Mobility Provider Company</label>
-                    {profile?.role === 'ADMIN' ? (
-                        <select value={newVehicle.providerId} onChange={e => setNewVehicle({ ...newVehicle, providerId: e.target.value })} required>
-                            {providers.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <input
-                            value={providerCompanyName}
-                            readOnly
-                            style={{
-                                color: '#6c757d',
-                                backgroundColor: '#f8f9fa',
-                                borderColor: '#ced4da'
-                            }}
-                        />
-                    )}
-                </div>
-                {mobilityProviderMissingCompany && (
-                    <p style={{ color: '#6c757d', marginTop: -4 }}>
-                        Enter your company name in Account Settings to add vehicles.
-                    </p>
-                )}
-                <div className="input-group">
-                    <label>Type</label>
-                    <select value={newVehicle.type} onChange={e => setNewVehicle({ ...newVehicle, type: e.target.value })}>
-                        <option value="CAR">Car</option>
-                        <option value="BIKE">Bike</option>
-                        <option value="SCOOTER">Scooter</option>
-                    </select>
-                </div>
-                {newVehicle.type === 'CAR' && (
+            <div className="provider-dashboard-layout">
+                <form onSubmit={handleAdd} className="form-card provider-form-card">
+                    <h3>Add New Vehicle</h3>
                     <div className="input-group">
-                        <label>Model</label>
-                        <input value={newVehicle.model} onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })} required />
+                        <label>Mobility Provider Company</label>
+                        {profile?.role === 'ADMIN' ? (
+                            <select value={newVehicle.providerId} onChange={e => setNewVehicle({ ...newVehicle, providerId: e.target.value })} required>
+                                {providers.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                value={providerCompanyName}
+                                readOnly
+                                style={{
+                                    color: '#6c757d',
+                                    backgroundColor: '#f8f9fa',
+                                    borderColor: '#ced4da'
+                                }}
+                            />
+                        )}
                     </div>
-                )}
-                <div className="input-group">
-                    <label>Cost per Minute ($)</label>
-                    <input type="number" step="0.01" value={newVehicle.costPerMinute} onChange={e => setNewVehicle({ ...newVehicle, costPerMinute: parseFloat(e.target.value) })} required />
-                </div>
-                <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
-            </form>
+                    {mobilityProviderMissingCompany && (
+                        <p style={{ color: '#6c757d', marginTop: -4 }}>
+                            Enter your company name in Account Settings to add vehicles.
+                        </p>
+                    )}
+                    <div className="input-group">
+                        <label>Type</label>
+                        <select value={newVehicle.type} onChange={e => setNewVehicle({ ...newVehicle, type: e.target.value })}>
+                            <option value="CAR">Car</option>
+                            <option value="BIKE">Bike</option>
+                            <option value="SCOOTER">Scooter</option>
+                        </select>
+                    </div>
+                    {newVehicle.type === 'CAR' && (
+                        <div className="input-group">
+                            <label>Model</label>
+                            <input value={newVehicle.model} onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })} required />
+                        </div>
+                    )}
+                    <div className="input-group">
+                        <label>Cost per Minute ($)</label>
+                        <input type="number" step="0.01" value={newVehicle.costPerMinute} onChange={e => setNewVehicle({ ...newVehicle, costPerMinute: parseFloat(e.target.value) })} required />
+                    </div>
+                    <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
+                </form>
 
-            <h3>Vehicles List</h3>
-            <table className="data-table">
-                <thead>
-                    <tr>
-                        <th>ID / Model</th>
-                        <th>Mobility Provider Company</th>
-                        <th>Pricing</th>
-                        <th>Availability</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {vehicles.map(v => (
-                        <tr key={v.id}>
-                            <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
-                            <td>{v.provider?.name || '-'}</td>
-                            <td>
-                                {editingVehicleId === v.id ? (
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={editVehicle.costPerMinute}
-                                        onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
-                                    />
-                                ) : (
-                                    <>${v.costPerMinute}/min</>
-                                )}
-                            </td>
-                            <td>
-                                {editingVehicleId === v.id ? (
-                                    <select
-                                        value={String(editVehicle.availability)}
-                                        onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
-                                    >
-                                        <option value="true">Yes</option>
-                                        <option value="false">No</option>
-                                    </select>
-                                ) : (
-                                    <>{v.availability ? 'Yes' : 'No'}</>
-                                )}
-                            </td>
-                            <td>
-                                {editingVehicleId === v.id ? (
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                        {v.car && (
+                <div className="provider-vehicle-list-card">
+                    <h3>Vehicles List</h3>
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID / Model</th>
+                                <th>Mobility Provider Company</th>
+                                <th>Pricing</th>
+                                <th>Availability</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {vehicles.map(v => (
+                                <tr key={v.id}>
+                                    <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
+                                    <td>{v.provider?.name || '-'}</td>
+                                    <td>
+                                        {editingVehicleId === v.id ? (
                                             <input
-                                                placeholder="Car model"
-                                                value={editVehicle.model}
-                                                onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
+                                                type="number"
+                                                step="0.01"
+                                                value={editVehicle.costPerMinute}
+                                                onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
                                             />
+                                        ) : (
+                                            <>${v.costPerMinute}/min</>
                                         )}
-                                        <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
-                                        <button onClick={cancelEdit}>Cancel</button>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button onClick={() => startEdit(v)}>Edit</button>
-                                        <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
-                                    </div>
-                                )}
-                            </td>
-                        </tr>
-                    ))}
-                    {vehicles.length === 0 && <tr><td colSpan={4}>No vehicles.</td></tr>}
-                </tbody>
-            </table>
+                                    </td>
+                                    <td>
+                                        {editingVehicleId === v.id ? (
+                                            <select
+                                                value={String(editVehicle.availability)}
+                                                onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
+                                            >
+                                                <option value="true">Yes</option>
+                                                <option value="false">No</option>
+                                            </select>
+                                        ) : (
+                                            <>{v.availability ? 'Yes' : 'No'}</>
+                                        )}
+                                    </td>
+                                    <td>
+                                        {editingVehicleId === v.id ? (
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                {v.car && (
+                                                    <input
+                                                        placeholder="Car model"
+                                                        value={editVehicle.model}
+                                                        onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
+                                                    />
+                                                )}
+                                                <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
+                                                <button onClick={cancelEdit}>Cancel</button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <button onClick={() => startEdit(v)}>Edit</button>
+                                                <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                            {vehicles.length === 0 && <tr><td colSpan={4}>No vehicles.</td></tr>}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 };
