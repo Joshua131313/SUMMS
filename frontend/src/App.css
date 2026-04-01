@@ -123,13 +123,13 @@ p {
     flex-direction: column;
     gap: 10px;
 }
-.mobility-card, .admin-card h3 {
+.mobility-card h3, .admin-card h3 {
     font-size: 1.35rem;
     color: #66897f;
     font-weight: 700;
 }
 
-.mobility-card, .admin-card  p {
+.mobility-card p, .admin-card p {
     color: #8fa69f;
     font-size: 0.98rem;
     margin: 0;
