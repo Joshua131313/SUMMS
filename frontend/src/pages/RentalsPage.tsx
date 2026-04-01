@@ -116,10 +116,10 @@ const RentalsPage = () => {
         <div className="page-container">
             <h1 className="text-5xl font-bold mb-12">My Rentals</h1>
 
-            <div className = "form-card" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="form-card rentals-co2-card" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                    <p style={{ color: '#6c757d', fontSize: 13, margin: 0}}> Your total CO2 emissions</p>
-                    <p style={{ fontSize: 24, fontWeight: 500, margin: 0 }}> {(profile?.totalCo2Kg || 0).toFixed(2)} kg CO2</p>
+                    <p style={{ fontSize: 13, margin: 0 }}>Your total CO2 emissions</p>
+                    <p style={{ fontSize: 24, fontWeight: 500, margin: 0 }}>{(profile?.totalCo2Kg || 0).toFixed(2)} kg CO2</p>
                 </div>
             </div>
             {error && <p className="error">{error}</p>}
