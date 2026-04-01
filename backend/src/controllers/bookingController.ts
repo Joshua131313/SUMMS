@@ -333,13 +333,34 @@ export const payRental = async (req: Request, res: Response) => {
 
 export const getCo2Summary = async (req: Request, res: Response) => {
     try {
-        const bookings = await prisma.booking.findMany({
-            where: {status: 'COMPLETED', co2Kg: {not: null}},
-            include: {transport: {
-                include: { 
-                    car: true, bike: true, scooter: true}}
-            }
+        const role = req.user?.role;
+        const userId = req.user?.id;
+        const where: any = {
+            status: 'COMPLETED',
+            co2Kg: { not: null }
+        };
 
+        if (role === 'MOBILITY_PROVIDER' && userId) {
+            where.transport = {
+                is: {
+                    providerId: userId
+                }
+            };
+        } else if (role !== 'ADMIN' && userId) {
+            where.clientId = userId;
+        }
+
+        const bookings = await prisma.booking.findMany({
+            where,
+            include: {
+                transport: {
+                    include: {
+                        car: true,
+                        bike: true,
+                        scooter: true
+                    }
+                }
+            }
         });
 
         const summary = bookings.reduce((acc: Record<string, number>, booking: typeof bookings[0]) => {
@@ -348,8 +369,15 @@ export const getCo2Summary = async (req: Request, res: Response) => {
                 : 'bike';
             acc[type] = (acc[type] || 0) + (booking.co2Kg || 0);
             acc.total = (acc.total || 0) + (booking.co2Kg || 0);
+            acc.trips = (acc.trips || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {
+            car: 0,
+            bike: 0,
+            scooter: 0,
+            total: 0,
+            trips: 0
+        } as Record<string, number>);
 
         res.json(summary);
     }
@@ -357,4 +385,3 @@ export const getCo2Summary = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to fetch CO2 summary', details: error.message });
     }
 };
-

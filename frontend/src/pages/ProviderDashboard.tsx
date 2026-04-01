@@ -38,6 +38,14 @@ const ProviderDashboard = () => {
     const [uploadingEditImage, setUploadingEditImage] = useState(false);
     const mobilityProviderMissingCompany = profile?.role === 'MOBILITY_PROVIDER' && !providerCompanyName.trim();
     const totalCo2Kg = co2Summary.total ?? 0;
+    const trackedTrips = co2Summary.trips ?? 0;
+    const carCo2Kg = co2Summary.car ?? 0;
+    const bikeCo2Kg = co2Summary.bike ?? 0;
+    const scooterCo2Kg = co2Summary.scooter ?? 0;
+    const co2Heading = profile?.role === 'ADMIN' ? 'Platform CO2 Snapshot' : 'Fleet CO2 Snapshot';
+    const co2Description = profile?.role === 'ADMIN'
+        ? 'Completed-trip emissions across the platform.'
+        : 'Completed-trip emissions across your vehicles.';
 
     const getProviderCompanyStorageKey = (userId: string) => `summs_provider_company_${userId}`;
 
@@ -52,8 +60,12 @@ const ProviderDashboard = () => {
 
                 if (!companyName.trim()) {
                     setNewVehicle(prev => ({ ...prev, providerId: '' }));
-                    const vRes = await api.get('/provider/vehicles');
+                    const [vRes, co2Res] = await Promise.all([
+                        api.get('/provider/vehicles'),
+                        api.get('/bookings/co2-summary')
+                    ]);
                     setVehicles(vRes.data);
+                    setCo2Summary(co2Res.data);
                     return;
                 }
 
@@ -61,10 +73,11 @@ const ProviderDashboard = () => {
                 const syncedProvider = providerSyncRes.data as ProviderOption;
                 setNewVehicle(prev => ({ ...prev, providerId: syncedProvider.id }));
 
-                const vRes = await api.get('/provider/vehicles');
+                const [vRes, co2Res] = await Promise.all([
+                    api.get('/provider/vehicles'),
+                    api.get('/bookings/co2-summary')
+                ]);
                 setVehicles(vRes.data);
-                
-                const co2Res = await api.get('/bookings/co2-summary');
                 setCo2Summary(co2Res.data);
 
                 return;
@@ -74,8 +87,12 @@ const ProviderDashboard = () => {
                 setNewVehicle(prev => ({ ...prev, providerId: pRes.data[0].id }));
             }
 
-            const vRes = await api.get('/provider/vehicles');
+            const [vRes, co2Res] = await Promise.all([
+                api.get('/provider/vehicles'),
+                api.get('/bookings/co2-summary')
+            ]);
             setVehicles(vRes.data);
+            setCo2Summary(co2Res.data);
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -209,11 +226,35 @@ const ProviderDashboard = () => {
     return (
         <div className="provider-dashboard-container">
             <h1 className="text-5xl font-bold mb-12">Provider Dashboard</h1>
-            <p style={{ color: '#66897f', marginTop: -28, marginBottom: 20 }}>
-                Recorded completed-trip emissions: {totalCo2Kg.toFixed(2)} kg CO2
-            </p>
             
             {error && <p className="error">{error}</p>}
+
+            <div className="card analytics-co2-card provider-co2-card">
+                <h3>{co2Heading}</h3>
+                <p className="analytics-co2-description">{co2Description}</p>
+                <div className="analytics-co2-grid">
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Completed Trips Tracked</p>
+                        <p className="analytics-co2-value">{trackedTrips}</p>
+                    </div>
+                    <div className="analytics-co2-stat analytics-co2-stat-primary">
+                        <p className="analytics-co2-label">Total CO2 Recorded</p>
+                        <p className="analytics-co2-value">{totalCo2Kg.toFixed(2)} kg</p>
+                    </div>
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Cars</p>
+                        <p className="analytics-co2-value">{carCo2Kg.toFixed(2)} kg</p>
+                    </div>
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Bikes</p>
+                        <p className="analytics-co2-value">{bikeCo2Kg.toFixed(2)} kg</p>
+                    </div>
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Scooters</p>
+                        <p className="analytics-co2-value">{scooterCo2Kg.toFixed(2)} kg</p>
+                    </div>
+                </div>
+            </div>
 
             <div className="provider-dashboard-layout">
                 <form onSubmit={handleAdd} className="form-card provider-form-card">

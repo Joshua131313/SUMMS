@@ -8,14 +8,19 @@ const AdminDashboard = () => {
 
     const [rentals, setRentals] = useState<any>(null);
     const [gateway, setGateway] = useState<any>(null);
+    const [co2Summary, setCo2Summary] = useState<Record<string, number>>({});
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const rRes = await api.get('/admin/analytics/rentals');
+                const [rRes, co2Res] = await Promise.all([
+                    api.get('/admin/analytics/rentals'),
+                    api.get('/bookings/co2-summary')
+                ]);
                 setRentals(rRes.data);
+                setCo2Summary(co2Res.data);
 
                 if (isAdmin) {
                     const [gRes, uRes] = await Promise.all([
@@ -48,6 +53,16 @@ const AdminDashboard = () => {
     };
 
     if (loading) return <div>Loading dashboard...</div>;
+
+    const totalCo2 = co2Summary.total ?? 0;
+    const totalTripsWithCo2 = co2Summary.trips ?? 0;
+    const carCo2 = co2Summary.car ?? 0;
+    const bikeCo2 = co2Summary.bike ?? 0;
+    const scooterCo2 = co2Summary.scooter ?? 0;
+    const co2Heading = isAdmin ? 'Platform CO2 Summary' : 'Fleet CO2 Summary';
+    const co2Description = isAdmin
+        ? 'Emissions recorded across all completed rentals.'
+        : 'Emissions recorded for completed rentals on your vehicles.';
 
     return (
         <div className="page-container">
@@ -123,6 +138,33 @@ const AdminDashboard = () => {
                         </div>
                     </div>
                 )}
+            </div>
+
+            <div className="card analytics-co2-card" style={{ marginTop: 32 }}>
+                <h3>{co2Heading}</h3>
+                <p className="analytics-co2-description">{co2Description}</p>
+                <div className="analytics-co2-grid" style={{ marginTop: 16 }}>
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Completed Trips Tracked</p>
+                        <p className="analytics-co2-value">{totalTripsWithCo2}</p>
+                    </div>
+                    <div className="analytics-co2-stat analytics-co2-stat-primary">
+                        <p className="analytics-co2-label">Total CO2 Recorded</p>
+                        <p className="analytics-co2-value">{totalCo2.toFixed(2)} kg</p>
+                    </div>
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Cars</p>
+                        <p className="analytics-co2-value">{carCo2.toFixed(2)} kg</p>
+                    </div>
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Bikes</p>
+                        <p className="analytics-co2-value">{bikeCo2.toFixed(2)} kg</p>
+                    </div>
+                    <div className="analytics-co2-stat">
+                        <p className="analytics-co2-label">Scooters</p>
+                        <p className="analytics-co2-value">{scooterCo2.toFixed(2)} kg</p>
+                    </div>
+                </div>
             </div>
 
             <div className="card" style={{ marginTop: 32 }}>
