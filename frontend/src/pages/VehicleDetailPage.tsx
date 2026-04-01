@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import VehicleMedia, { getVehicleDisplayName, type VehicleWithMedia } from '../components/vehicles/VehicleMedia';
+
+type Vehicle = {
+    costPerMinute: number;
+    availability: boolean;
+} & VehicleWithMedia;
 
 const VehicleDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [vehicle, setVehicle] = useState<any>(null);
+    const [vehicle, setVehicle] = useState<Vehicle | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -49,7 +55,13 @@ const VehicleDetailPage = () => {
 
             <div style={{display: "grid",gridTemplateColumns: "1fr 1fr"}}>
             <div className="card">
-                <h3>{vehicle.car?.model || (vehicle.bike ? 'City Bike' : 'Electric Scooter')}</h3>
+                <VehicleMedia
+                    vehicle={vehicle}
+                    alt={getVehicleDisplayName(vehicle)}
+                    style={{ width: '100%', height: 220, borderRadius: 12, marginBottom: 16 }}
+                    iconSize={56}
+                />
+                <h3>{getVehicleDisplayName(vehicle)}</h3>
                 {(vehicle.car?.fuelType === 'electric' || vehicle.scooter?.fuelType === 'electric') && (
                     <span style={{
                         background: '#d1fae5',

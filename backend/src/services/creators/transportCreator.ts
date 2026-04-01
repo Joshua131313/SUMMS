@@ -12,6 +12,7 @@ interface CreateTransportInput {
     type: string;
     model?: string;
     fuelType?: string;
+    imageUrl?: string;
 }
 
 class TransportCreator {
@@ -19,6 +20,9 @@ class TransportCreator {
         const normalizedType = String(input.type).toUpperCase();
         const fuelType = input.fuelType || 'petrol';
         const emissionFactorGPerKm = EMISSION_FACTORS[fuelType] ?? 185;
+        const imageUrl = input.imageUrl?.trim() || undefined;
+
+        const imageCreateData = imageUrl ? { imageUrl } : {};
     
 
         return prisma.transport.create({
@@ -27,13 +31,13 @@ class TransportCreator {
                 costPerMinute: input.costPerMinute,
                 availability: true,
                 ...(normalizedType === 'CAR'
-                    ? { car: { create: { model: input.model || 'Unknown', fuelType, emissionFactorGPerKm } } }
+                    ? { car: { create: { model: input.model || 'Unknown', fuelType, emissionFactorGPerKm, ...imageCreateData } } }
                     : {}),
                 ...(normalizedType === 'BIKE'
-                    ? { bike: { create: {} } }
+                    ? { bike: { create: { ...imageCreateData } } }
                     : {}),
                 ...(normalizedType === 'SCOOTER'
-                    ? { scooter: { create: {fuelType, emissionFactorGPerKm } } }
+                    ? { scooter: { create: { fuelType, emissionFactorGPerKm, ...imageCreateData } } }
                     : {})
             },
             include: {

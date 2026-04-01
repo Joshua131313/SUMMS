@@ -164,6 +164,53 @@ p {
     flex: 0 0 280px;
 }
 
+.analytics-co2-card {
+    background: #91aca5;
+    color: #ffffff;
+    gap: 12px;
+}
+
+.analytics-co2-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+}
+
+.analytics-co2-description {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.98rem;
+}
+
+.analytics-co2-stat {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.analytics-co2-stat-primary {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.analytics-co2-label {
+    margin: 0 0 6px;
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 0.92rem;
+}
+
+.analytics-co2-value {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.provider-co2-card {
+    margin-top: -20px;
+    margin-bottom: 24px;
+}
+
 .provider-dashboard-layout {
     display: flex;
     align-items: flex-start;

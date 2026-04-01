@@ -86,15 +86,15 @@ export const getManageableVehicles = async (req: Request, res: Response) => {
 
 export const addVehicle = async (req: Request, res: Response) => {
     try {
-        const { providerId, costPerMinute, type, model, fuelType } = req.body;
+        const { providerId, costPerMinute, type, model, fuelType, imageUrl } = req.body;
         const isAdmin = req.user?.role === 'ADMIN';
         const targetProviderId = isAdmin ? providerId : req.user!.id;
 
-        if (!targetProviderId || !costPerMinute || !fuelType) {
-            return res.status(400).json({ error: 'Missing required field: fuelType' });
+        if (!targetProviderId || costPerMinute === undefined || costPerMinute === null || Number.isNaN(Number(costPerMinute))) {
+            return res.status(400).json({ error: 'Missing required field: costPerMinute' });
         }
 
-        if ((type === 'CAR' || type === 'SCOOTER') && !model) {
+        if (type === 'CAR' && !model) {
             return res.status(400).json({ error: 'Missing required field: model' });
         }
 
@@ -112,7 +112,8 @@ export const addVehicle = async (req: Request, res: Response) => {
             costPerMinute: Number(costPerMinute),
             type,
             model,
-            fuelType
+            fuelType,
+            imageUrl
         });
 
         res.status(201).json(transport);
@@ -124,7 +125,7 @@ export const addVehicle = async (req: Request, res: Response) => {
 export const updateVehicle = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
-        const { costPerMinute, availability, model, fuelType } = req.body;
+        const { costPerMinute, availability, model, fuelType, imageUrl } = req.body;
         const isAdmin = req.user?.role === 'ADMIN';
 
         const existingTransport = await prisma.transport.findUnique({
@@ -141,12 +142,39 @@ export const updateVehicle = async (req: Request, res: Response) => {
         }
 
         const transportCar = (existingTransport as any).car;
+        const transportBike = (existingTransport as any).bike;
+        const transportScooter = (existingTransport as any).scooter;
+
+        const imageUrlUpdate = imageUrl !== undefined ? { imageUrl } : {};
 
         const updatedTransport = await prisma.transport.update({
             where: { id },
             data: {
                 ...(costPerMinute !== undefined && { costPerMinute }),
-                ...(model && transportCar ? { car: { update: { model } } } : {}),
+                ...(transportCar ? {
+                    car: {
+                        update: {
+                            ...(model !== undefined && { model }),
+                            ...(fuelType !== undefined && { fuelType }),
+                            ...imageUrlUpdate
+                        }
+                    }
+                } : {}),
+                ...(transportBike && Object.keys(imageUrlUpdate).length > 0 ? {
+                    bike: {
+                        update: {
+                            ...imageUrlUpdate
+                        }
+                    }
+                } : {}),
+                ...(transportScooter ? {
+                    scooter: {
+                        update: {
+                            ...(fuelType !== undefined && { fuelType }),
+                            ...imageUrlUpdate
+                        }
+                    }
+                } : {}),
             },
             include: { car: true, bike: true, scooter: true, provider: true }
         });

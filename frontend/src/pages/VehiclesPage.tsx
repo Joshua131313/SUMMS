@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import carImage from '../assets/lightning-mcqueen-cars-movie.gif';
+import VehicleMedia, { getVehicleDisplayName, type VehicleWithMedia } from '../components/vehicles/VehicleMedia';
+
+type Vehicle = {
+  id: string;
+  costPerMinute: number;
+  availability: boolean;
+  provider?: { name?: string | null } | null;
+} & VehicleWithMedia;
 
 const VehiclesPage = () => {
-    const [vehicles, setVehicles] = useState<any[]>([]);
+    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState('');
     const [priceFilter, setPriceFilter] = useState('');
@@ -82,15 +89,17 @@ const VehiclesPage = () => {
                 key={v.id}
                 className="bg-white rounded-xl shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition"
               >
-                <img
-                  src={carImage}
-                  alt="vehicle"
-                  className="h-40 w-full object-cover mb-4"
+                <VehicleMedia
+                  vehicle={v}
+                  alt={getVehicleDisplayName(v)}
+                  className="h-40 w-full mb-4 overflow-hidden rounded-lg"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  iconSize={46}
                 />
 
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold mb-2">
-                    {v.car?.model || (v.bike ? 'Bike' : 'Scooter')}
+                    {getVehicleDisplayName(v)}
                   </h3>
                   {(v.car?.fuelType === 'electric' || v.scooter?.fuelType === 'electric' || v.bike) && (
                   <span className="inline-block bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2">
