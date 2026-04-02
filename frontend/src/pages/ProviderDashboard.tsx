@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Leaf } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -40,8 +41,7 @@ const ProviderDashboard = () => {
     const totalCo2Kg = co2Summary.total ?? 0;
     const trackedTrips = co2Summary.trips ?? 0;
     const carCo2Kg = co2Summary.car ?? 0;
-    const bikeCo2Kg = co2Summary.bike ?? 0;
-    const scooterCo2Kg = co2Summary.scooter ?? 0;
+
     const co2Heading = profile?.role === 'ADMIN' ? 'Platform CO2 Snapshot' : 'Fleet CO2 Snapshot';
     const co2Description = profile?.role === 'ADMIN'
         ? 'Completed-trip emissions across the platform.'
@@ -230,8 +230,13 @@ const ProviderDashboard = () => {
             {error && <p className="error">{error}</p>}
 
             <div className="card analytics-co2-card provider-co2-card">
-                <h3>{co2Heading}</h3>
-                <p className="analytics-co2-description">{co2Description}</p>
+                <div className="analytics-co2-header">
+                    <div>
+                        <h3>{co2Heading}</h3>
+                        <p className="analytics-co2-description">{co2Description}</p>
+                    </div>
+                    <Leaf size={30} color="white" strokeWidth={1.5} aria-hidden="true" />
+                </div>
                 <div className="analytics-co2-grid">
                     <div className="analytics-co2-stat">
                         <p className="analytics-co2-label">Completed Trips Tracked</p>
@@ -247,11 +252,11 @@ const ProviderDashboard = () => {
                     </div>
                     <div className="analytics-co2-stat">
                         <p className="analytics-co2-label">Bikes</p>
-                        <p className="analytics-co2-value">{bikeCo2Kg.toFixed(2)} kg</p>
+                        <p className="analytics-co2-value" style={{ fontSize: '0.9rem' }}>Zero Emission</p>
                     </div>
                     <div className="analytics-co2-stat">
                         <p className="analytics-co2-label">Scooters</p>
-                        <p className="analytics-co2-value">{scooterCo2Kg.toFixed(2)} kg</p>
+                        <p className="analytics-co2-value" style={{ fontSize: '0.9rem' }}>Zero Emission</p>
                     </div>
                 </div>
             </div>
@@ -286,7 +291,17 @@ const ProviderDashboard = () => {
                     )}
                     <div className="input-group">
                         <label>Type</label>
-                        <select value={newVehicle.type} onChange={e => setNewVehicle({ ...newVehicle, type: e.target.value })}>
+                        <select
+                            value={newVehicle.type}
+                            onChange={e => {
+                                const nextType = e.target.value;
+                                setNewVehicle({
+                                    ...newVehicle,
+                                    type: nextType,
+                                    fuelType: nextType === 'CAR' ? newVehicle.fuelType : 'electric'
+                                });
+                            }}
+                        >
                             <option value="CAR">Car</option>
                             <option value="BIKE">Bike</option>
                             <option value="SCOOTER">Scooter</option>
@@ -298,7 +313,7 @@ const ProviderDashboard = () => {
                             <input value={newVehicle.model} onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })} required />
                         </div>
                     )}
-                    {(newVehicle.type === 'CAR' || newVehicle.type === 'SCOOTER') && (
+                    {newVehicle.type === 'CAR' && (
                     <div className="input-group">
                         <label>Fuel Type</label>
                         <select value={newVehicle.fuelType} onChange={e => setNewVehicle({ ...newVehicle, fuelType: e.target.value })}>

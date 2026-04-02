@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Leaf } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -111,15 +112,25 @@ const RentalsPage = () => {
 
     const currentBookings = bookings.filter(b => b.status === 'RESERVED' || b.status === 'ACTIVE' || (b.status === 'COMPLETED' && !b.payment));
     const pastBookings = bookings.filter(b => (b.status === 'COMPLETED' && b.payment) || b.status === 'CANCELLED');
+    const totalCo2Kg = profile?.totalCo2Kg || 0;
 
     return (
         <div className="page-container">
             <h1 className="text-5xl font-bold mb-12">My Rentals</h1>
 
-            <div className = "form-card" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                    <p style={{ color: '#6c757d', fontSize: 13, margin: 0}}> Your total CO2 emissions</p>
-                    <p style={{ fontSize: 24, fontWeight: 500, margin: 0 }}> {(profile?.totalCo2Kg || 0).toFixed(2)} kg CO2</p>
+            <div className="card analytics-co2-card rentals-co2-card">
+                <div className="analytics-co2-header">
+                    <div>
+                        <h3>My CO2 Tracker</h3>
+                        <p className="analytics-co2-description">Your completed-trip emissions so far.</p>
+                    </div>
+                    <Leaf size={30} color="white" strokeWidth={1.5} aria-hidden="true" />
+                </div>
+                <div className="analytics-co2-grid rentals-co2-grid">
+                    <div className="analytics-co2-stat analytics-co2-stat-primary">
+                        <p className="analytics-co2-label">Total CO2</p>
+                        <p className="analytics-co2-value">{totalCo2Kg.toFixed(2)} kg</p>
+                    </div>
                 </div>
             </div>
             {error && <p className="error">{error}</p>}
