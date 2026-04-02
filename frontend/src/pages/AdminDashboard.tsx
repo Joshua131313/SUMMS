@@ -6,7 +6,17 @@ import {
     PieChart, Pie, Cell
 } from 'recharts';
 import api from '../lib/api';
-import { useAuth } from '../features/auth/context/AuthContext';
+import { useAuth } from '../features/auth/context/useAuth';
+import { getErrorMessage } from '../lib/apiError';
+import type { GatewaySummaryEntry, RentalsAnalytics } from '../types/analytics';
+
+type AdminUser = {
+    email: string;
+    firstName: string | null;
+    id: string;
+    lastName: string | null;
+    role: string;
+};
 
 const C = {
     teal: '#66897f',
@@ -18,10 +28,10 @@ const AdminDashboard = () => {
     const { profile } = useAuth();
     const isAdmin = profile?.role === 'ADMIN';
 
-    const [rentals, setRentals] = useState<any>(null);
-    const [gateway, setGateway] = useState<any>(null);
+    const [rentals, setRentals] = useState<RentalsAnalytics | null>(null);
+    const [gateway, setGateway] = useState<GatewaySummaryEntry[]>([]);
     const [co2Summary, setCo2Summary] = useState<Record<string, number>>({});
-    const [users, setUsers] = useState<any[]>([]);
+    const [users, setUsers] = useState<AdminUser[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -31,19 +41,19 @@ const AdminDashboard = () => {
                     api.get('/admin/analytics/rentals'),
                     api.get('/bookings/co2-summary')
                 ]);
-                setRentals(rRes.data);
-                setCo2Summary(co2Res.data);
+                setRentals(rRes.data as RentalsAnalytics);
+                setCo2Summary(co2Res.data as Record<string, number>);
 
                 if (isAdmin) {
                     const [gRes, uRes] = await Promise.all([
                         api.get('/admin/analytics/gateway'),
                         api.get('/admin/users')
                     ]);
-                    setGateway(gRes.data.summary);
-                    setUsers(uRes.data);
+                    setGateway((gRes.data.summary || []) as GatewaySummaryEntry[]);
+                    setUsers(uRes.data as AdminUser[]);
                 }
-            } catch (e: any) {
-                console.error(e);
+            } catch (e: unknown) {
+                console.error(getErrorMessage(e), e);
             } finally {
                 setLoading(false);
             }
@@ -58,9 +68,9 @@ const AdminDashboard = () => {
         try {
             await api.put(`/admin/users/${userId}/role`, { role: newRole });
             const uRes = await api.get('/admin/users');
-            setUsers(uRes.data);
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            setUsers(uRes.data as AdminUser[]);
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, 'Unable to update the user role.'));
         }
     };
 
@@ -69,12 +79,13 @@ const AdminDashboard = () => {
     const totalCo2 = co2Summary.total ?? 0;
     const totalTripsWithCo2 = co2Summary.trips ?? 0;
     const carCo2 = co2Summary.car ?? 0;
+    const rentalsByVehicle = rentals?.rentalsByVehicle ?? [];
     const co2Heading = isAdmin ? 'Platform CO2 Summary' : 'Fleet CO2 Summary';
     const co2Description = isAdmin
         ? 'Emissions recorded across all completed rentals.'
         : 'Emissions recorded for completed rentals on your vehicles.';
 
-    const vehicleStatusData = (rentals?.requiredMetrics?.vehicleStatusTable || []).map((e: any) => ({
+    const vehicleStatusData = (rentals?.requiredMetrics?.vehicleStatusTable || []).map((e) => ({
         type: e.type,
         rented: Number(e.rented || 0),
         available: Number(e.available || 0),
@@ -89,7 +100,7 @@ const AdminDashboard = () => {
         { name: 'Rented', value: Math.max(0, (rentals?.summary?.totalRentals || 0) - (rentals?.summary?.completedRentals || 0)), color: C.light },
     ];
 
-    const gatewayPieData: PieEntry[] = (gateway || []).map((g: any, i: number) => ({
+    const gatewayPieData: PieEntry[] = gateway.map((g, i: number) => ({
         name: g.serviceType,
         value: g._count.id,
         color: PIE_PALETTE[i % PIE_PALETTE.length],
@@ -101,7 +112,7 @@ const AdminDashboard = () => {
         ? rawUsagePerCity
         : [...rawUsagePerCity, { city: 'Montreal', count: 0 }];
 
-    const cityPieData: PieEntry[] = usagePerCityWithMontreal.map((e: any, i: number) => ({
+    const cityPieData: PieEntry[] = usagePerCityWithMontreal.map((e, i: number) => ({
         name: e.city,
         value: e.count,
         color: PIE_PALETTE[i % PIE_PALETTE.length],
@@ -249,7 +260,7 @@ const AdminDashboard = () => {
                 <div className="card" style={{ marginTop: 32 }}>
                     <h3>Your Vehicle Rental Breakdown</h3>
 
-                    {rentals?.rentalsByVehicle?.length > 0 ? (
+                    {rentalsByVehicle.length > 0 ? (
                         <div style={{ overflowX: 'auto', marginTop: 16 }}>
                             <table className="data-table" style={{ minWidth: '700px' }}>
                                 <thead>
@@ -262,7 +273,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {rentals.rentalsByVehicle.map((vehicle: any) => (
+                                    {rentalsByVehicle.map((vehicle) => (
                                         <tr key={vehicle.transportId}>
                                             <td>{vehicle.vehicleName}</td>
                                             <td>{vehicle.vehicleType}</td>

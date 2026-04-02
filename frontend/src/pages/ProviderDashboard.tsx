@@ -1,8 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Leaf } from 'lucide-react';
 import api from '../lib/api';
-import { useAuth } from '../features/auth/context/AuthContext';
+import { useAuth } from '../features/auth/context/useAuth';
 import { supabase } from '../lib/supabase';
+import { getErrorMessage } from '../lib/apiError';
+import type { VehicleWithMedia } from '../components/vehicles/vehicleMedia.shared';
+
+type ProviderVehicle = VehicleWithMedia & {
+    availability: boolean;
+    costPerMinute: number;
+    id: string;
+    provider?: ProviderOption | null;
+};
+
+type VehicleFormState = {
+    availability: boolean;
+    costPerMinute: number;
+    imageUrl: string;
+    model: string;
+};
+
+type NewVehicleFormState = {
+    costPerMinute: number;
+    fuelType: string;
+    imageUrl: string;
+    model: string;
+    providerId: string;
+    type: 'BIKE' | 'CAR' | 'SCOOTER';
+};
 
 type ProviderOption = {
     id: string;
@@ -12,20 +37,20 @@ type ProviderOption = {
 const ProviderDashboard = () => {
     const { profile } = useAuth();
     const vehicleImageBucket = import.meta.env.VITE_SUPABASE_VEHICLE_IMAGE_BUCKET || 'vehicle-images';
-    const [vehicles, setVehicles] = useState<any[]>([]);
+    const [vehicles, setVehicles] = useState<ProviderVehicle[]>([]);
     const [providers, setProviders] = useState<ProviderOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [providerCompanyName, setProviderCompanyName] = useState('');
     const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
-    const [editVehicle, setEditVehicle] = useState({
+    const [editVehicle, setEditVehicle] = useState<VehicleFormState>({
         costPerMinute: 0,
         availability: true,
         model: '',
         imageUrl: ''
     });
 
-    const [newVehicle, setNewVehicle] = useState({
+    const [newVehicle, setNewVehicle] = useState<NewVehicleFormState>({
         providerId: '',
         costPerMinute: 0,
         type: 'CAR',
@@ -47,10 +72,11 @@ const ProviderDashboard = () => {
 
     const getProviderCompanyStorageKey = (userId: string) => `summs_provider_company_${userId}`;
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const pRes = await api.get('/provider/profiles');
-            setProviders(pRes.data);
+            const providerOptions = pRes.data as ProviderOption[];
+            setProviders(providerOptions);
 
             if (profile?.role === 'MOBILITY_PROVIDER') {
                 const companyName = localStorage.getItem(getProviderCompanyStorageKey(profile.id)) || '';
@@ -62,8 +88,8 @@ const ProviderDashboard = () => {
                         api.get('/provider/vehicles'),
                         api.get('/bookings/co2-summary')
                     ]);
-                    setVehicles(vRes.data);
-                    setCo2Summary(co2Res.data);
+                    setVehicles(vRes.data as ProviderVehicle[]);
+                    setCo2Summary(co2Res.data as Record<string, number>);
                     return;
                 }
 
@@ -75,32 +101,32 @@ const ProviderDashboard = () => {
                     api.get('/provider/vehicles'),
                     api.get('/bookings/co2-summary')
                 ]);
-                setVehicles(vRes.data);
-                setCo2Summary(co2Res.data);
+                setVehicles(vRes.data as ProviderVehicle[]);
+                setCo2Summary(co2Res.data as Record<string, number>);
 
                 return;
             }
 
-            if (pRes.data.length > 0) {
-                setNewVehicle(prev => ({ ...prev, providerId: pRes.data[0].id }));
+            if (providerOptions.length > 0) {
+                setNewVehicle(prev => ({ ...prev, providerId: providerOptions[0].id }));
             }
 
             const [vRes, co2Res] = await Promise.all([
                 api.get('/provider/vehicles'),
                 api.get('/bookings/co2-summary')
             ]);
-            setVehicles(vRes.data);
-            setCo2Summary(co2Res.data);
-        } catch (e: any) {
-            setError(e.message);
+            setVehicles(vRes.data as ProviderVehicle[]);
+            setCo2Summary(co2Res.data as Record<string, number>);
+        } catch (e: unknown) {
+            setError(getErrorMessage(e, 'Unable to load provider data.'));
         } finally {
             setLoading(false);
         }
-    };
+    }, [profile]);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        void fetchData();
+    }, [fetchData]);
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -110,16 +136,21 @@ const ProviderDashboard = () => {
         }
         try {
             const trimmedImageUrl = newVehicle.imageUrl.trim();
-            const { imageUrl: _imageUrl, ...payloadBase } = newVehicle;
             const payload = trimmedImageUrl
-                ? { ...payloadBase, imageUrl: trimmedImageUrl }
-                : payloadBase;
+                ? { ...newVehicle, imageUrl: trimmedImageUrl }
+                : {
+                    providerId: newVehicle.providerId,
+                    costPerMinute: newVehicle.costPerMinute,
+                    type: newVehicle.type,
+                    model: newVehicle.model,
+                    fuelType: newVehicle.fuelType
+                };
 
             await api.post('/provider/vehicles', payload);
             setNewVehicle({ ...newVehicle, costPerMinute: 0, model: '', imageUrl: '' });
-            fetchData();
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            await fetchData();
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, 'Unable to add the vehicle.'));
         }
     };
 
@@ -127,9 +158,9 @@ const ProviderDashboard = () => {
         if (!window.confirm('Remove this vehicle?')) return;
         try {
             await api.delete(`/provider/vehicles/${id}`);
-            fetchData();
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            await fetchData();
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, 'Unable to remove the vehicle.'));
         }
     };
 
@@ -171,7 +202,7 @@ const ProviderDashboard = () => {
         }
     };
 
-    const startEdit = (vehicle: any) => {
+    const startEdit = (vehicle: ProviderVehicle) => {
         setEditingVehicleId(vehicle.id);
         setEditVehicle({
             costPerMinute: vehicle.costPerMinute,
@@ -188,7 +219,12 @@ const ProviderDashboard = () => {
 
     const handleUpdate = async (id: string, hasCarModel: boolean) => {
         try {
-            const payload: any = {
+            const payload: {
+                availability: boolean;
+                costPerMinute: number;
+                imageUrl: string;
+                model?: string;
+            } = {
                 costPerMinute: editVehicle.costPerMinute,
                 availability: editVehicle.availability,
                 imageUrl: editVehicle.imageUrl
@@ -200,9 +236,9 @@ const ProviderDashboard = () => {
 
             await api.put(`/provider/vehicles/${id}`, payload);
             cancelEdit();
-            fetchData();
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            await fetchData();
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, 'Unable to update the vehicle.'));
         }
     };
 
@@ -279,7 +315,7 @@ const ProviderDashboard = () => {
                         <select
                             value={newVehicle.type}
                             onChange={e => {
-                                const nextType = e.target.value;
+                                const nextType = e.target.value as NewVehicleFormState['type'];
                                 setNewVehicle({
                                     ...newVehicle,
                                     type: nextType,

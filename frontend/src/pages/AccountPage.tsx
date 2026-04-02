@@ -1,28 +1,66 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../features/auth/context/AuthContext';
+import { useState } from 'react';
+import { useAuth } from '../features/auth/context/useAuth';
+import type { UserProfile } from '../features/auth/context/authContext';
 import api from '../lib/api';
+import { getErrorMessage } from '../lib/apiError';
 
-const AccountPage = () => {
-    const { profile } = useAuth();
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        username: '',
-        city: '',
-        preferredMobility: 'CAR'
-    });
-    const [paymentData, setPaymentData] = useState({
-        cardNumber: '',
-        cardFirstName: '',
-        cardLastName: '',
-        cardVerificationCode: '',
-        expirationDate: ''
-    });
-    const [providerCompanyName, setProviderCompanyName] = useState('');
+type FormData = {
+    city: string;
+    firstName: string;
+    lastName: string;
+    preferredMobility: string;
+    username: string;
+};
+
+type PaymentData = {
+    cardFirstName: string;
+    cardLastName: string;
+    cardNumber: string;
+    cardVerificationCode: string;
+    expirationDate: string;
+};
+
+const emptyPaymentData: PaymentData = {
+    cardNumber: '',
+    cardFirstName: '',
+    cardLastName: '',
+    cardVerificationCode: '',
+    expirationDate: ''
+};
+
+const createFormData = (profile: UserProfile): FormData => ({
+    firstName: profile.firstName || '',
+    lastName: profile.lastName || '',
+    username: profile.username || '',
+    city: profile.city || '',
+    preferredMobility: profile.preferredMobility || 'CAR'
+});
+
+const getPaymentStorageKey = (userId: string) => `summs_card_profile_${userId}`;
+const getProviderCompanyStorageKey = (userId: string) => `summs_provider_company_${userId}`;
+
+const parsePaymentData = (rawPaymentData: string | null): PaymentData => {
+    if (!rawPaymentData) return emptyPaymentData;
+
+    try {
+        const parsed = JSON.parse(rawPaymentData) as Partial<PaymentData>;
+        return {
+            cardNumber: parsed.cardNumber || '',
+            cardFirstName: parsed.cardFirstName || '',
+            cardLastName: parsed.cardLastName || '',
+            cardVerificationCode: parsed.cardVerificationCode || '',
+            expirationDate: parsed.expirationDate || ''
+        };
+    } catch {
+        return emptyPaymentData;
+    }
+};
+
+const AccountPageContent = ({ profile }: { profile: UserProfile }) => {
+    const [formData, setFormData] = useState<FormData>(() => createFormData(profile));
+    const [paymentData, setPaymentData] = useState<PaymentData>(() => parsePaymentData(localStorage.getItem(getPaymentStorageKey(profile.id))));
+    const [providerCompanyName, setProviderCompanyName] = useState(() => localStorage.getItem(getProviderCompanyStorageKey(profile.id)) || '');
     const [msg, setMsg] = useState('');
-
-    const getPaymentStorageKey = (userId: string) => `summs_card_profile_${userId}`;
-    const getProviderCompanyStorageKey = (userId: string) => `summs_provider_company_${userId}`;
 
     const isPaymentDataValid = () => {
         const cardNumberValid = /^\d{16}$/.test(paymentData.cardNumber);
@@ -41,15 +79,13 @@ const AccountPage = () => {
         return cardNumberValid && firstNameValid && lastNameValid && cvcValid && notExpired;
     };
 
-    const isPaymentDataEmpty = () => {
-        return (
-            paymentData.cardNumber.trim() === '' &&
-            paymentData.cardFirstName.trim() === '' &&
-            paymentData.cardLastName.trim() === '' &&
-            paymentData.cardVerificationCode.trim() === '' &&
-            paymentData.expirationDate.trim() === ''
-        );
-    };
+    const isPaymentDataEmpty = () => (
+        paymentData.cardNumber.trim() === ''
+        && paymentData.cardFirstName.trim() === ''
+        && paymentData.cardLastName.trim() === ''
+        && paymentData.cardVerificationCode.trim() === ''
+        && paymentData.expirationDate.trim() === ''
+    );
 
     const paymentValidationErrors = {
         cardNumber: paymentData.cardNumber.length > 0 && !/^\d{16}$/.test(paymentData.cardNumber)
@@ -78,75 +114,34 @@ const AccountPage = () => {
 
     const hasPaymentValidationErrors = Object.values(paymentValidationErrors).some(Boolean);
     const hasMissingCardFields =
-        !paymentData.cardNumber ||
-        !paymentData.cardFirstName.trim() ||
-        !paymentData.cardLastName.trim() ||
-        !paymentData.cardVerificationCode ||
-        !paymentData.expirationDate;
+        !paymentData.cardNumber
+        || !paymentData.cardFirstName.trim()
+        || !paymentData.cardLastName.trim()
+        || !paymentData.cardVerificationCode
+        || !paymentData.expirationDate;
     const paymentDataEmpty = isPaymentDataEmpty();
     const hasAnyCardInput =
-        paymentData.cardNumber.trim() !== '' ||
-        paymentData.cardFirstName.trim() !== '' ||
-        paymentData.cardLastName.trim() !== '' ||
-        paymentData.cardVerificationCode.trim() !== '' ||
-        paymentData.expirationDate.trim() !== '';
-
-    useEffect(() => {
-        if (profile) {
-            setFormData({
-                firstName: profile.firstName || '',
-                lastName: profile.lastName || '',
-                username: profile.username || '',
-                city: profile.city || '',
-                preferredMobility: profile.preferredMobility || 'CAR'
-            });
-
-            const rawPaymentData = localStorage.getItem(getPaymentStorageKey(profile.id));
-            if (rawPaymentData) {
-                try {
-                    const parsed = JSON.parse(rawPaymentData);
-                    setPaymentData({
-                        cardNumber: parsed.cardNumber || '',
-                        cardFirstName: parsed.cardFirstName || '',
-                        cardLastName: parsed.cardLastName || '',
-                        cardVerificationCode: parsed.cardVerificationCode || '',
-                        expirationDate: parsed.expirationDate || ''
-                    });
-                } catch {
-                    setPaymentData({
-                        cardNumber: '',
-                        cardFirstName: '',
-                        cardLastName: '',
-                        cardVerificationCode: '',
-                        expirationDate: ''
-                    });
-                }
-            }
-
-            const storedProviderCompany = localStorage.getItem(getProviderCompanyStorageKey(profile.id));
-            setProviderCompanyName(storedProviderCompany || '');
-        }
-    }, [profile]);
+        paymentData.cardNumber.trim() !== ''
+        || paymentData.cardFirstName.trim() !== ''
+        || paymentData.cardLastName.trim() !== ''
+        || paymentData.cardVerificationCode.trim() !== ''
+        || paymentData.expirationDate.trim() !== '';
 
     const handleSaveProfile = async () => {
         try {
             await api.put('/me', formData);
-            if (profile) {
-                if (profile.role === 'MOBILITY_PROVIDER') {
-                    localStorage.setItem(getProviderCompanyStorageKey(profile.id), providerCompanyName.trim());
-                } else {
-                    localStorage.removeItem(getProviderCompanyStorageKey(profile.id));
-                }
+            if (profile.role === 'MOBILITY_PROVIDER') {
+                localStorage.setItem(getProviderCompanyStorageKey(profile.id), providerCompanyName.trim());
+            } else {
+                localStorage.removeItem(getProviderCompanyStorageKey(profile.id));
             }
             setMsg('Profile saved successfully.');
-        } catch (err: any) {
-            setMsg(`Failed to update account: ${err.response?.data?.error || err.response?.data?.details || err.message}`);
+        } catch (err: unknown) {
+            setMsg(`Failed to update account: ${getErrorMessage(err, 'Unable to update your profile.')}`);
         }
     };
 
     const handleSavePayment = () => {
-        if (!profile) return;
-
         if (!paymentDataEmpty && !isPaymentDataValid()) {
             setMsg('Invalid credit card details. Use 16-digit card number, 3-digit verification code, valid names, and a non-expired date.');
             return;
@@ -163,26 +158,17 @@ const AccountPage = () => {
     };
 
     const handleRemoveCreditCard = () => {
-        if (!profile) return;
         localStorage.removeItem(getPaymentStorageKey(profile.id));
-        setPaymentData({
-            cardNumber: '',
-            cardFirstName: '',
-            cardLastName: '',
-            cardVerificationCode: '',
-            expirationDate: ''
-        });
+        setPaymentData(emptyPaymentData);
         setMsg('Credit card details removed.');
     };
 
     const handleRemoveProviderCompanyName = () => {
-        if (!profile) return;
         localStorage.removeItem(getProviderCompanyStorageKey(profile.id));
         setProviderCompanyName('');
         setMsg('Mobility provider company name removed.');
     };
 
-    if (!profile) return <div>Loading account...</div>;
     const isErrorMsg = msg.startsWith('Failed') || msg.startsWith('Invalid');
 
     return (
@@ -322,7 +308,15 @@ const AccountPage = () => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
+
+const AccountPage = () => {
+    const { profile } = useAuth();
+
+    if (!profile) return <div>Loading account...</div>;
+
+    return <AccountPageContent key={profile.id} profile={profile} />;
+};
 
 export default AccountPage;

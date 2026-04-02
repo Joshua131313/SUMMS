@@ -1,33 +1,60 @@
 import { useEffect, useState } from 'react';
 import { Leaf } from 'lucide-react';
 import api from '../lib/api';
-import { useAuth } from '../features/auth/context/AuthContext';
+import { useAuth } from '../features/auth/context/useAuth';
 import { Link } from 'react-router-dom';
+import { getErrorMessage } from '../lib/apiError';
+
+type PaymentData = {
+    cardFirstName: string;
+    cardLastName: string;
+    cardNumber: string;
+    cardVerificationCode: string;
+    expirationDate: string;
+};
+
+type BookingTransport = {
+    car?: {
+        model?: string | null;
+    } | null;
+};
+
+type Booking = {
+    bookingDate: string;
+    co2Kg?: number | null;
+    endTime: string;
+    id: string;
+    payment?: Record<string, unknown> | null;
+    startTime: string;
+    status: 'ACTIVE' | 'CANCELLED' | 'COMPLETED' | 'RESERVED';
+    totalCost: number;
+    transport?: BookingTransport | null;
+};
 
 const RentalsPage = () => {
     const { profile } = useAuth();
-    const [bookings, setBookings] = useState<any[]>([]);
+    const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-    const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<any>(null);
+    const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<Booking | null>(null);
     const [paymentConfirmation, setPaymentConfirmation] = useState('');
     const [paymentError, setPaymentError] = useState('');
 
     const getPaymentStorageKey = (userId: string) => `summs_card_profile_${userId}`;
 
-    const getStoredPaymentData = () => {
+    const getStoredPaymentData = (): PaymentData | null => {
         if (!profile) return null;
         const raw = localStorage.getItem(getPaymentStorageKey(profile.id));
         if (!raw) return null;
         try {
-            return JSON.parse(raw);
+            return JSON.parse(raw) as PaymentData;
         } catch {
             return null;
         }
     };
 
-    const isPaymentDataValid = (paymentData: any) => {
+    const isPaymentDataValid = (paymentData: PaymentData | null) => {
         if (!paymentData) return false;
         const cardNumberValid = /^\d{16}$/.test(String(paymentData.cardNumber || ''));
         const firstNameValid = String(paymentData.cardFirstName || '').trim().length > 0;
@@ -49,9 +76,9 @@ const RentalsPage = () => {
     const fetchBookings = async () => {
         try {
             const res = await api.get('/bookings/me');
-            setBookings(res.data);
-        } catch (e: any) {
-            setError(e.message);
+            setBookings(res.data as Booking[]);
+        } catch (e: unknown) {
+            setError(getErrorMessage(e, 'Unable to load rentals.'));
         } finally {
             setLoading(false);
         }
@@ -61,7 +88,7 @@ const RentalsPage = () => {
         fetchBookings();
     }, []);
 
-    const openPaymentModal = (booking: any) => {
+    const openPaymentModal = (booking: Booking) => {
         const paymentData = getStoredPaymentData();
         if (!isPaymentDataValid(paymentData)) {
             setPaymentError('Payment cannot be processed yet. Please enter valid credit card details in Account Settings.');
@@ -80,6 +107,10 @@ const RentalsPage = () => {
                 setPaymentError('Payment cannot be processed yet. Please enter valid credit card details in Account Settings.');
                 return;
             }
+            if (!paymentData) {
+                setPaymentError('Payment cannot be processed yet. Please enter valid credit card details in Account Settings.');
+                return;
+            }
 
             const res = await api.post(`/bookings/${selectedBookingForPayment.id}/pay`, {
                 paymentMethod: 'CARD',
@@ -94,8 +125,8 @@ const RentalsPage = () => {
             setPaymentModalOpen(false);
             setSelectedBookingForPayment(null);
             fetchBookings(); // reload
-        } catch (e: any) {
-            setPaymentError(e.response?.data?.error || e.message);
+        } catch (e: unknown) {
+            setPaymentError(getErrorMessage(e, 'Unable to process payment.'));
         }
     }
 
@@ -103,8 +134,8 @@ const RentalsPage = () => {
         try {
             await api.post(`/bookings/${id}/${action}`);
             fetchBookings(); // reload
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, `Unable to ${action} this rental.`));
         }
     };
 

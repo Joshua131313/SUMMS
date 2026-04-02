@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import VehicleMedia, { getVehicleDisplayName, type VehicleWithMedia } from '../components/vehicles/VehicleMedia';
+import VehicleMedia from '../components/vehicles/VehicleMedia';
+import { getVehicleDisplayName, type VehicleWithMedia } from '../components/vehicles/vehicleMedia.shared';
 
 type Vehicle = {
   id: string;

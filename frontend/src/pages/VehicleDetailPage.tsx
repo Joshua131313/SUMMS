@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import type { VehicleWithMedia } from '../components/vehicles/VehicleMedia';
+import { getErrorMessage } from '../lib/apiError';
+import type { VehicleWithMedia } from '../components/vehicles/vehicleMedia.shared';
 
 type Vehicle = {
     costPerMinute: number;
@@ -43,8 +44,8 @@ const VehicleDetailPage = () => {
                 endTime: new Date(reservation.endTime).toISOString()
             });
             navigate('/rentals/current');
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err, 'Unable to reserve this vehicle.'));
         }
     };
 
