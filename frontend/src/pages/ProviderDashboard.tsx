@@ -3,7 +3,6 @@ import { Leaf } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { supabase } from '../lib/supabase';
-import VehicleMedia, { getVehicleDisplayName } from '../components/vehicles/VehicleMedia';
 
 type ProviderOption = {
     id: string;
@@ -36,7 +35,6 @@ const ProviderDashboard = () => {
     });
     const [co2Summary, setCo2Summary] = useState<Record<string, number>>({});
     const [uploadingImage, setUploadingImage] = useState(false);
-    const [uploadingEditImage, setUploadingEditImage] = useState(false);
     const mobilityProviderMissingCompany = profile?.role === 'MOBILITY_PROVIDER' && !providerCompanyName.trim();
     const totalCo2Kg = co2Summary.total ?? 0;
     const trackedTrips = co2Summary.trips ?? 0;
@@ -170,19 +168,6 @@ const ProviderDashboard = () => {
             alert(`Failed to upload image: ${message}`);
         } finally {
             setUploadingImage(false);
-        }
-    };
-
-    const handleEditImageUpload = async (file: File) => {
-        try {
-            setUploadingEditImage(true);
-            const publicUrl = await uploadVehicleImageFile(file);
-            setEditVehicle(prev => ({ ...prev, imageUrl: publicUrl }));
-        } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : 'Image upload failed';
-            alert(`Failed to upload image: ${message}`);
-        } finally {
-            setUploadingEditImage(false);
         }
     };
 
@@ -355,111 +340,72 @@ const ProviderDashboard = () => {
                 <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
             </form>
 
-                <div className="provider-vehicle-list-card">
-                    <h3>Vehicles List</h3>
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID / Model</th>
-                                <th>Mobility Provider Company</th>
-                                <th>Pricing</th>
-                                <th>Availability</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {vehicles.map(v => (
-                                <tr key={v.id}>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <VehicleMedia
-                                                vehicle={v}
-                                                alt={getVehicleDisplayName(v)}
-                                                style={{
-                                                    width: 72,
-                                                    height: 52,
-                                                    borderRadius: 10,
-                                                    flex: '0 0 auto',
-                                                    border: '1px solid rgba(255, 255, 255, 0.35)'
-                                                }}
-                                                iconSize={26}
-                                            />
-                                            <span>{getVehicleDisplayName(v)}</span>
-                                        </div>
-                                    </td>
-                                    <td>{v.provider?.name || '-'}</td>
-                                    <td>
-                                        {editingVehicleId === v.id ? (
+            <h3>Vehicles List</h3>
+            <table className="data-table">
+                <thead>
+                    <tr>
+                        <th>ID / Model</th>
+                        <th>Mobility Provider Company</th>
+                        <th>Pricing</th>
+                        <th>Availability</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {vehicles.map(v => (
+                        <tr key={v.id}>
+                            <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
+                            <td>{v.provider?.name || '-'}</td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editVehicle.costPerMinute}
+                                        onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
+                                    />
+                                ) : (
+                                    <>${v.costPerMinute}/min</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <select
+                                        value={String(editVehicle.availability)}
+                                        onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
+                                    >
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                ) : (
+                                    <>{v.availability ? 'Yes' : 'No'}</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        {v.car && (
                                             <input
-                                                type="number"
-                                                step="0.01"
-                                                value={editVehicle.costPerMinute}
-                                                onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
+                                                placeholder="Car model"
+                                                value={editVehicle.model}
+                                                onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
                                             />
-                                        ) : (
-                                            <>${v.costPerMinute}/min</>
                                         )}
-                                    </td>
-                                    <td>
-                                        {editingVehicleId === v.id ? (
-                                            <select
-                                                value={String(editVehicle.availability)}
-                                                onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
-                                            >
-                                                <option value="true">Yes</option>
-                                                <option value="false">No</option>
-                                            </select>
-                                        ) : (
-                                            <>{v.availability ? 'Yes' : 'No'}</>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {editingVehicleId === v.id ? (
-                                            <div style={{ display: 'grid', gap: 8 }}>
-                                                {v.car && (
-                                                    <input
-                                                        placeholder="Car model"
-                                                        value={editVehicle.model}
-                                                        onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
-                                                    />
-                                                )}
-                                                <input
-                                                    type="text"
-                                                    placeholder="https://example.com/vehicle.jpg"
-                                                    value={editVehicle.imageUrl}
-                                                    onChange={e => setEditVehicle({ ...editVehicle, imageUrl: e.target.value })}
-                                                />
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            void handleEditImageUpload(file);
-                                                        }
-                                                        e.currentTarget.value = '';
-                                                    }}
-                                                    disabled={uploadingEditImage}
-                                                />
-                                                {uploadingEditImage && <small>Uploading image...</small>}
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                    <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
-                                                    <button onClick={cancelEdit}>Cancel</button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'flex', gap: 8 }}>
-                                                <button onClick={() => startEdit(v)}>Edit</button>
-                                                <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            {vehicles.length === 0 && <tr><td colSpan={5}>No vehicles.</td></tr>}
-                        </tbody>
-                    </table>
-                </div>
+                                        <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
+                                        <button onClick={cancelEdit}>Cancel</button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => startEdit(v)}>Edit</button>
+                                        <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
+                                    </div>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                    {vehicles.length === 0 && <tr><td colSpan={4}>No vehicles.</td></tr>}
+                </tbody>
+            </table>
             </div>
         </div>
     );

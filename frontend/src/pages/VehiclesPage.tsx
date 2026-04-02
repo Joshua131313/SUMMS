@@ -95,41 +95,50 @@ const VehiclesPage = () => {
                 </div>
             </div>
 
-            {loading ? (
-                <p>Loading...</p>
-            ) : (
-                <div className="vehicles-grid">
-                    {vehicles.map((v) => (
-                        <div key={v.id} className="card vehicles-card">
-                            <VehicleMedia
-                                vehicle={v}
-                                alt={getVehicleDisplayName(v)}
-                                className="vehicles-media"
-                                style={{ border: '1px solid #d7dfdb' }}
-                                iconSize={46}
-                            />
+        {loading ? (
+          <p className="text-gray-500">Loading...</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {vehicles.map((v) => (
+              <div
+                key={v.id}
+                className="bg-white rounded-xl shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition"
+              >
+                <VehicleMedia
+                  vehicle={v}
+                  alt={getVehicleDisplayName(v)}
+                  className="h-40 w-full object-cover mb-4"
+                />
 
-                            <div>
-                                <h3 className="vehicles-name">{getVehicleDisplayName(v)}</h3>
-                                {(v.car?.fuelType === 'electric' || v.scooter?.fuelType === 'electric' || v.bike) && (
-                                    <div className="vehicles-zero-emission-badge-card">
-                                        <span className="vehicles-zero-emission-dot" aria-hidden="true" />
-                                        <div>
-                                            <p className="vehicles-zero-emission-title">Zero Emission</p>
-                                            <p className="vehicles-zero-emission-subtitle">Cleaner choice</p>
-                                        </div>
-                                    </div>
-                                )}
-                                <p>Type: <strong>{v.car ? 'Car' : v.bike ? 'Bike' : 'Scooter'}</strong></p>
-                                <p>Price: <strong>${v.costPerMinute}/min</strong></p>
-                                <p>Mobility Provider: <strong>{v.provider?.name || 'Unknown Provider'}</strong></p>
-                                <p>
-                                    Available:{' '}
-                                    <strong className={v.availability ? 'vehicles-available' : 'vehicles-unavailable'}>
-                                        {v.availability ? 'Yes' : 'No'}
-                                    </strong>
-                                </p>
-                            </div>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">
+                    {v.car?.model || (v.bike ? 'Bike' : 'Scooter')}
+                  </h3>
+                  {(v.car?.fuelType === 'electric' || v.scooter?.fuelType === 'electric' || v.bike) && (
+                  <span className="inline-block bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2">
+                    Zero emissions
+                  </span>
+                  )}
+                  <p className="text-sm text-gray-600 mb-1">
+                    Type: {v.car ? 'Car' : v.bike ? 'Bike' : 'Scooter'}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Price:{' '}
+                    <span className="font-medium">${v.costPerMinute}/min</span>
+                  </p>
+                  <p className="text-sm">
+                    Available:{' '}
+                    <span
+                      className={
+                        v.availability
+                          ? 'text-green-600 font-medium'
+                          : 'text-red-500'
+                      }
+                    >
+                      {v.availability ? 'Yes' : 'No'}
+                    </span>
+                  </p>
+                </div>
 
                             <button
                                 onClick={() => navigate(`/vehicles/${v.id}`)}
