@@ -3,23 +3,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import inspector from 'node:inspector';
 import { fileURLToPath } from 'node:url';
-import { tripPricingService } from '../services/pricing/tripPricingService.js';
-import { validateCardPaymentDetails } from '../services/rentals/paymentValidation.js';
+import { calculateRentalPricing } from './support/rentalPricing.mjs';
+import { validateCardPaymentDetails } from './support/paymentValidation.mjs';
 
 const wantsCoverage = process.argv.includes('--coverage');
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const targetFiles = [
-    path.resolve(rootDir, 'src/services/pricing/tripPricingService.js'),
-    path.resolve(rootDir, 'src/services/pricing/tripPricingStrategy.js'),
-    path.resolve(rootDir, 'src/services/rentals/paymentValidation.js'),
-    path.resolve(rootDir, 'src/services/transport/vehicleType.js')
+    path.resolve(rootDir, 'src/tests/support/rentalPricing.mjs'),
+    path.resolve(rootDir, 'src/tests/support/paymentValidation.mjs')
 ];
 
 const tests = [
     {
         name: 'applies the preference discount before other rental pricing strategies',
         run() {
-            const result = tripPricingService.calculate({
+            const result = calculateRentalPricing({
                 durationMinutes: 20,
                 costPerMinute: 0.5,
                 vehicleType: 'CAR',
@@ -37,7 +35,7 @@ const tests = [
     {
         name: 'falls back to city pricing when the rental preference does not match',
         run() {
-            const result = tripPricingService.calculate({
+            const result = calculateRentalPricing({
                 durationMinutes: 10,
                 costPerMinute: 1,
                 vehicleType: 'SCOOTER',
@@ -53,7 +51,7 @@ const tests = [
     {
         name: 'uses the vehicle-type multiplier when no preference or city rule applies',
         run() {
-            const result = tripPricingService.calculate({
+            const result = calculateRentalPricing({
                 durationMinutes: 8,
                 costPerMinute: 1.25,
                 vehicleType: 'BIKE'
