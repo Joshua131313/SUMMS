@@ -118,7 +118,6 @@ const RentalsPage = () => {
         <div className="page-container">
             <h1 className="text-5xl font-bold mb-12">My Rentals</h1>
 
-<<<<<<< HEAD
             <div className="card analytics-co2-card rentals-co2-card">
                 <div className="analytics-co2-header">
                     <div>
@@ -132,12 +131,6 @@ const RentalsPage = () => {
                         <p className="analytics-co2-label">Total CO2</p>
                         <p className="analytics-co2-value">{totalCo2Kg.toFixed(2)} kg</p>
                     </div>
-=======
-            <div className="form-card rentals-co2-card" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                    <p style={{ fontSize: 13, margin: 0 }}>Your total CO2 emissions</p>
-                    <p style={{ fontSize: 24, fontWeight: 500, margin: 0 }}>{(profile?.totalCo2Kg || 0).toFixed(2)} kg CO2</p>
->>>>>>> origin/main
                 </div>
             </div>
             {error && <p className="error">{error}</p>}
