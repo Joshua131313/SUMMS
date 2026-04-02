@@ -47,7 +47,7 @@ const Navbar = () => {
                             Admin Tools
                         </NavLink>
                     )}
-                    {profile?.role === 'MOBILITY_PROVIDER' && (
+                    {(profile?.role === 'MOBILITY_PROVIDER' || profile?.role === 'ADMIN') && (
                         <NavLink
                             to="/provider/vehicles"
                             className={navItemClass}

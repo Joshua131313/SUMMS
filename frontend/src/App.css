@@ -123,13 +123,13 @@ p {
     flex-direction: column;
     gap: 10px;
 }
-.mobility-card, .admin-card h3 {
+.mobility-card h3, .admin-card h3 {
     font-size: 1.35rem;
     color: #66897f;
     font-weight: 700;
 }
 
-.mobility-card, .admin-card  p {
+.mobility-card p, .admin-card p {
     color: #8fa69f;
     font-size: 0.98rem;
     margin: 0;
@@ -204,10 +204,15 @@ p {
 }
 
 .analytics-co2-card {
+<<<<<<< HEAD
     position: relative;
     overflow: hidden;
     background: #91aca5;
     color: #ffffff;
+=======
+    background: white;
+    color: #91aca5;
+>>>>>>> origin/main
     gap: 12px;
     border: 1px solid #7f9a93;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
@@ -290,6 +295,7 @@ p {
 
 .analytics-co2-description {
     margin: 0;
+<<<<<<< HEAD
     color: #ffffff;
     opacity: 0.9;
     font-size: 0.98rem;
@@ -298,25 +304,45 @@ p {
 .analytics-co2-stat {
     background: rgba(255, 255, 255, 0.16);
     border: 1px solid rgba(255, 255, 255, 0.3);
+=======
+    color: #91aca5;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.analytics-co2-stat {
+    background-color:#91aca5 ;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+>>>>>>> origin/main
     border-radius: 12px;
     padding: 14px 16px;
     backdrop-filter: blur(3px);
 }
 
 .analytics-co2-stat-primary {
-    background: rgba(255, 255, 255, 0.18);
+        background-color:#91aca5 ;
 }
 
 .analytics-co2-label {
+
     margin: 0 0 6px;
+<<<<<<< HEAD
     color: rgba(245, 255, 250, 0.92);
+=======
+    color:  #ffffff;
+>>>>>>> origin/main
     font-size: 0.92rem;
 }
 
 .analytics-co2-value {
     margin: 0;
+<<<<<<< HEAD
     color: #ffffff;
     font-size: 1.35rem;
+=======
+    color:  #ffffff;
+    font-size: 1.3rem;
+>>>>>>> origin/main
     font-weight: 700;
 }
 
@@ -709,6 +735,18 @@ p {
     line-height: 1.1;
     letter-spacing: -0.02em;
     color: #66897f;
+}
+
+.rentals-co2-card {
+    background: #ffffff;
+    color: #6c757d;
+    font-weight: 900;
+    border: 4px solid #8fa69f;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.rentals-co2-card p {
+    color: #6c757d;
 }
 
 .rentals-current-card {
