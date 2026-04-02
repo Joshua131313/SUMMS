@@ -12,6 +12,7 @@ import {
 
 const wantsCoverage = process.argv.includes('--coverage');
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const repoRoot = path.resolve(rootDir, '..');
 const targetFiles = [
     path.resolve(rootDir, 'src/features/rentals/rentalHelpers.js')
 ];
@@ -122,9 +123,10 @@ const writeLcov = async (coverageResult) => {
 
     const byFile = new Map();
     for (const script of coverageResult.result) {
-        const normalized = path.normalize(script.url);
-        if (!targetFiles.includes(normalized)) continue;
-        byFile.set(normalized, script.functions);
+        if (!script.url.startsWith('file://')) continue;
+        const scriptPath = path.normalize(fileURLToPath(script.url));
+        if (!targetFiles.includes(scriptPath)) continue;
+        byFile.set(scriptPath, script.functions);
     }
 
     const report = [];
@@ -145,8 +147,9 @@ const writeLcov = async (coverageResult) => {
         }
 
         const entries = [...executable.entries()].sort((a, b) => a[0] - b[0]);
+        const relativeFile = path.relative(repoRoot, file).replace(/\\/g, '/');
         report.push('TN:');
-        report.push(`SF:${file}`);
+        report.push(`SF:${relativeFile}`);
         for (const [line, count] of entries) {
             report.push(`DA:${line},${count}`);
         }
