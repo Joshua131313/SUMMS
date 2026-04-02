@@ -83,11 +83,20 @@ const DashboardPage = () => {
                 )}
             </div>
         );
-    } else if (profile?.preferredMobility && profile?.city) {
+    } else {
         dashboardHighlight = (
             <div className="card dashboard-recommendation-card">
-                <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>✨ Personalized Travel Recommendations</h3>
-                {loadingRecommendation ? (
+                <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Personalized Travel Recommendations</h3>
+                {!profile?.preferredMobility || !profile?.city ? (
+                    <div className="flex-col">
+                        <p style={{ fontSize: '18px' }}>
+                            Add your city and preferred mobility in your account so we can show tailored vehicle recommendations here.
+                        </p>
+                        <Button style={{ marginTop: 20 }}>
+                            <Link to="/account">Complete your profile</Link>
+                        </Button>
+                    </div>
+                ) : loadingRecommendation ? (
                     <p>Loading your recommendations...</p>
                 ) : recommendations.length > 0 ? (
                     <div className="flex-col">
@@ -110,42 +119,53 @@ const DashboardPage = () => {
             {dashboardHighlight}
 
             <div className="dashboard-card-row" style={{ marginTop: 30 }}>
+                {profile?.role === 'ADMIN' && (
+                    <>
+                        <div className="card dashboard-card admin-card" style={{ border: '4px solid #acd2cd' }}>
+                            <UserRound className="dashboard-admin-card-icon" strokeWidth={2.2} />
+                            <h3>Admin Tools</h3>
+                            <p>View analytics and manage roles.</p>
+                            <Link to="/admin"><button>Admin Dashboard</button></Link>
+                        </div>
+
+                        <div className="card dashboard-card mobility-card" style={{ border: '4px solid #acd2cd' }}>
+                            <UserRound className="dashboard-mobility-card-icon" strokeWidth={2.2} />
+                            <h3>Provider Tools</h3>
+                            <p>Manage your vehicles and review provider insights.</p>
+                            <Link to="/provider/vehicles"><button>Open Tools</button></Link>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            <div className="dashboard-card-row" style={{ marginTop: 30 }}>
                 <div className="card dashboard-card">
                     <CarFront className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>Rent a Vehicle</h3>
                     <p>Find nearby bikes, scooters, and cars.</p>
-                    <Link to="/vehicles"><button className ="dashboard-button">Search Vehicles</button></Link>
+                    <Link to="/vehicles"><button className="dashboard-button">Search Vehicles</button></Link>
                 </div>
 
                 <div className="card dashboard-card">
                     <SquareParking className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>Book a Parking Spots</h3>
                     <p>Find & reserve parking in the city.</p>
-                    <Link to="/parking"><button className ="dashboard-button">Find Parking</button></Link>
+                    <Link to="/parking"><button className="dashboard-button">Find Parking</button></Link>
                 </div>
 
                 <div className="card dashboard-card">
                     <BusFront className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>View Transit</h3>
                     <p>Check schedules for buses, trams & trains.</p>
-                    <Link to="/public-transport"><button className ="dashboard-button">View Schedules</button></Link>
+                    <Link to="/public-transport"><button className="dashboard-button">View Schedules</button></Link>
                 </div>
+
                 <div className="card dashboard-card">
                     <CalendarCheck2 className="dashboard-card-icon" strokeWidth={2.2} />
                     <h3>View My Bookings</h3>
                     <p>Manage your active and past rentals.</p>
-                    <Link to="/rentals/current"><button className="dashboard-button"
-                    >View Rentals</button></Link>
+                    <Link to="/rentals/current"><button className="dashboard-button">View Rentals</button></Link>
                 </div>
-
-                {profile?.role === 'ADMIN' && (
-                    <div className="card dashboard-card admin-card" style={{ border: '4px solid #acd2cd' }}>
-                        <UserRound className="dashboard-admin-card-icon" strokeWidth={2.2} />
-                        <h3>Admin Tools</h3>
-                        <p>View analytics and manage roles.</p>
-                        <Link to="/admin"><button>Admin Dashboard</button></Link>
-                    </div>
-                )}
 
                 {profile?.role === 'MOBILITY_PROVIDER' && (
                     <div className="card dashboard-card mobility-card" style={{ border: '4px solid #acd2cd' }}>
