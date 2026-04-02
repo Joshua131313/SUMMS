@@ -59,12 +59,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // auth changes, if logged in navigate to home page
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
                 loadProfile();
-                navigate("/");
+                if (event === 'SIGNED_IN') {
+                    navigate("/");
+                }
             } else {
                 setProfile(null);
             }
