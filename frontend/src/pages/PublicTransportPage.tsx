@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 
+type PublicTransportRoute = {
+    id: string;
+    name: string;
+    schedule: string;
+    type: string;
+};
+
 const PublicTransportPage = () => {
-    const [routes, setRoutes] = useState<any[]>([]);
+    const [routes, setRoutes] = useState<PublicTransportRoute[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         api.get('/public-transport/routes')
-            .then(res => setRoutes(res.data))
+            .then(res => setRoutes(res.data as PublicTransportRoute[]))
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);

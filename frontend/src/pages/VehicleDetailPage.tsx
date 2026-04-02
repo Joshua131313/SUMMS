@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import VehicleMedia, { getVehicleDisplayName, type VehicleWithMedia } from '../components/vehicles/VehicleMedia';
+import { getErrorMessage } from '../lib/apiError';
+import type { VehicleWithMedia } from '../components/vehicles/vehicleMedia.shared';
 
 type Vehicle = {
     costPerMinute: number;
@@ -15,11 +16,15 @@ const VehicleDetailPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const [reservation, setReservation] = useState({
-        departure: 'Downtown',
-        destination: 'Uptown',
-        startTime: new Date().toISOString().slice(0, 16),
-        endTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16) // +1 hour
+    const [reservation, setReservation] = useState(() => {
+        const start = new Date();
+        const end = new Date(start.getTime() + 3600000);
+        return {
+            departure: 'Downtown',
+            destination: 'Uptown',
+            startTime: start.toISOString().slice(0, 16),
+            endTime: end.toISOString().slice(0, 16)
+        };
     });
 
     useEffect(() => {
@@ -39,8 +44,8 @@ const VehicleDetailPage = () => {
                 endTime: new Date(reservation.endTime).toISOString()
             });
             navigate('/rentals/current');
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err, 'Unable to reserve this vehicle.'));
         }
     };
 
@@ -55,13 +60,7 @@ const VehicleDetailPage = () => {
 
             <div style={{display: "grid",gridTemplateColumns: "1fr 1fr"}}>
             <div className="card">
-                <VehicleMedia
-                    vehicle={vehicle}
-                    alt={getVehicleDisplayName(vehicle)}
-                    style={{ width: '100%', height: 220, borderRadius: 12, marginBottom: 16 }}
-                    iconSize={56}
-                />
-                <h3>{getVehicleDisplayName(vehicle)}</h3>
+                <h3>{vehicle.car?.model || (vehicle.bike ? 'City Bike' : 'Electric Scooter')}</h3>
                 {(vehicle.car?.fuelType === 'electric' || vehicle.scooter?.fuelType === 'electric') && (
                     <span style={{
                         background: '#d1fae5',

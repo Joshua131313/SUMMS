@@ -1,8 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Leaf } from 'lucide-react';
 import api from '../lib/api';
-import { useAuth } from '../features/auth/context/AuthContext';
+import { useAuth } from '../features/auth/context/useAuth';
 import { supabase } from '../lib/supabase';
-import VehicleMedia, { getVehicleDisplayName } from '../components/vehicles/VehicleMedia';
+import { getErrorMessage } from '../lib/apiError';
+import type { VehicleWithMedia } from '../components/vehicles/vehicleMedia.shared';
+
+type ProviderVehicle = VehicleWithMedia & {
+    availability: boolean;
+    costPerMinute: number;
+    id: string;
+    provider?: ProviderOption | null;
+};
+
+type VehicleFormState = {
+    availability: boolean;
+    costPerMinute: number;
+    imageUrl: string;
+    model: string;
+};
+
+type NewVehicleFormState = {
+    costPerMinute: number;
+    fuelType: string;
+    imageUrl: string;
+    model: string;
+    providerId: string;
+    type: 'BIKE' | 'CAR' | 'SCOOTER';
+};
 
 type ProviderOption = {
     id: string;
@@ -12,20 +37,20 @@ type ProviderOption = {
 const ProviderDashboard = () => {
     const { profile } = useAuth();
     const vehicleImageBucket = import.meta.env.VITE_SUPABASE_VEHICLE_IMAGE_BUCKET || 'vehicle-images';
-    const [vehicles, setVehicles] = useState<any[]>([]);
+    const [vehicles, setVehicles] = useState<ProviderVehicle[]>([]);
     const [providers, setProviders] = useState<ProviderOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [providerCompanyName, setProviderCompanyName] = useState('');
     const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
-    const [editVehicle, setEditVehicle] = useState({
+    const [editVehicle, setEditVehicle] = useState<VehicleFormState>({
         costPerMinute: 0,
         availability: true,
         model: '',
         imageUrl: ''
     });
 
-    const [newVehicle, setNewVehicle] = useState({
+    const [newVehicle, setNewVehicle] = useState<NewVehicleFormState>({
         providerId: '',
         costPerMinute: 0,
         type: 'CAR',
@@ -35,13 +60,11 @@ const ProviderDashboard = () => {
     });
     const [co2Summary, setCo2Summary] = useState<Record<string, number>>({});
     const [uploadingImage, setUploadingImage] = useState(false);
-    const [uploadingEditImage, setUploadingEditImage] = useState(false);
     const mobilityProviderMissingCompany = profile?.role === 'MOBILITY_PROVIDER' && !providerCompanyName.trim();
     const totalCo2Kg = co2Summary.total ?? 0;
     const trackedTrips = co2Summary.trips ?? 0;
     const carCo2Kg = co2Summary.car ?? 0;
-    const bikeCo2Kg = co2Summary.bike ?? 0;
-    const scooterCo2Kg = co2Summary.scooter ?? 0;
+
     const co2Heading = profile?.role === 'ADMIN' ? 'Platform CO2 Snapshot' : 'Fleet CO2 Snapshot';
     const co2Description = profile?.role === 'ADMIN'
         ? 'Completed-trip emissions across the platform.'
@@ -49,10 +72,11 @@ const ProviderDashboard = () => {
 
     const getProviderCompanyStorageKey = (userId: string) => `summs_provider_company_${userId}`;
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const pRes = await api.get('/provider/profiles');
-            setProviders(pRes.data);
+            const providerOptions = pRes.data as ProviderOption[];
+            setProviders(providerOptions);
 
             if (profile?.role === 'MOBILITY_PROVIDER') {
                 const companyName = localStorage.getItem(getProviderCompanyStorageKey(profile.id)) || '';
@@ -64,8 +88,8 @@ const ProviderDashboard = () => {
                         api.get('/provider/vehicles'),
                         api.get('/bookings/co2-summary')
                     ]);
-                    setVehicles(vRes.data);
-                    setCo2Summary(co2Res.data);
+                    setVehicles(vRes.data as ProviderVehicle[]);
+                    setCo2Summary(co2Res.data as Record<string, number>);
                     return;
                 }
 
@@ -77,32 +101,32 @@ const ProviderDashboard = () => {
                     api.get('/provider/vehicles'),
                     api.get('/bookings/co2-summary')
                 ]);
-                setVehicles(vRes.data);
-                setCo2Summary(co2Res.data);
+                setVehicles(vRes.data as ProviderVehicle[]);
+                setCo2Summary(co2Res.data as Record<string, number>);
 
                 return;
             }
 
-            if (pRes.data.length > 0) {
-                setNewVehicle(prev => ({ ...prev, providerId: pRes.data[0].id }));
+            if (providerOptions.length > 0) {
+                setNewVehicle(prev => ({ ...prev, providerId: providerOptions[0].id }));
             }
 
             const [vRes, co2Res] = await Promise.all([
                 api.get('/provider/vehicles'),
                 api.get('/bookings/co2-summary')
             ]);
-            setVehicles(vRes.data);
-            setCo2Summary(co2Res.data);
-        } catch (e: any) {
-            setError(e.message);
+            setVehicles(vRes.data as ProviderVehicle[]);
+            setCo2Summary(co2Res.data as Record<string, number>);
+        } catch (e: unknown) {
+            setError(getErrorMessage(e, 'Unable to load provider data.'));
         } finally {
             setLoading(false);
         }
-    };
+    }, [profile]);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        void fetchData();
+    }, [fetchData]);
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,16 +136,21 @@ const ProviderDashboard = () => {
         }
         try {
             const trimmedImageUrl = newVehicle.imageUrl.trim();
-            const { imageUrl: _imageUrl, ...payloadBase } = newVehicle;
             const payload = trimmedImageUrl
-                ? { ...payloadBase, imageUrl: trimmedImageUrl }
-                : payloadBase;
+                ? { ...newVehicle, imageUrl: trimmedImageUrl }
+                : {
+                    providerId: newVehicle.providerId,
+                    costPerMinute: newVehicle.costPerMinute,
+                    type: newVehicle.type,
+                    model: newVehicle.model,
+                    fuelType: newVehicle.fuelType
+                };
 
             await api.post('/provider/vehicles', payload);
             setNewVehicle({ ...newVehicle, costPerMinute: 0, model: '', imageUrl: '' });
-            fetchData();
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            await fetchData();
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, 'Unable to add the vehicle.'));
         }
     };
 
@@ -129,9 +158,9 @@ const ProviderDashboard = () => {
         if (!window.confirm('Remove this vehicle?')) return;
         try {
             await api.delete(`/provider/vehicles/${id}`);
-            fetchData();
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            await fetchData();
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, 'Unable to remove the vehicle.'));
         }
     };
 
@@ -173,20 +202,7 @@ const ProviderDashboard = () => {
         }
     };
 
-    const handleEditImageUpload = async (file: File) => {
-        try {
-            setUploadingEditImage(true);
-            const publicUrl = await uploadVehicleImageFile(file);
-            setEditVehicle(prev => ({ ...prev, imageUrl: publicUrl }));
-        } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : 'Image upload failed';
-            alert(`Failed to upload image: ${message}`);
-        } finally {
-            setUploadingEditImage(false);
-        }
-    };
-
-    const startEdit = (vehicle: any) => {
+    const startEdit = (vehicle: ProviderVehicle) => {
         setEditingVehicleId(vehicle.id);
         setEditVehicle({
             costPerMinute: vehicle.costPerMinute,
@@ -203,7 +219,12 @@ const ProviderDashboard = () => {
 
     const handleUpdate = async (id: string, hasCarModel: boolean) => {
         try {
-            const payload: any = {
+            const payload: {
+                availability: boolean;
+                costPerMinute: number;
+                imageUrl: string;
+                model?: string;
+            } = {
                 costPerMinute: editVehicle.costPerMinute,
                 availability: editVehicle.availability,
                 imageUrl: editVehicle.imageUrl
@@ -215,9 +236,9 @@ const ProviderDashboard = () => {
 
             await api.put(`/provider/vehicles/${id}`, payload);
             cancelEdit();
-            fetchData();
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.message);
+            await fetchData();
+        } catch (e: unknown) {
+            alert(getErrorMessage(e, 'Unable to update the vehicle.'));
         }
     };
 
@@ -230,8 +251,13 @@ const ProviderDashboard = () => {
             {error && <p className="error">{error}</p>}
 
             <div className="card analytics-co2-card provider-co2-card">
-                <h3>{co2Heading}</h3>
-                <p className="analytics-co2-description">{co2Description}</p>
+                <div className="analytics-co2-header">
+                    <div>
+                        <h3>{co2Heading}</h3>
+                        <p className="analytics-co2-description">{co2Description}</p>
+                    </div>
+                    <Leaf size={30} color="white" strokeWidth={1.5} aria-hidden="true" />
+                </div>
                 <div className="analytics-co2-grid">
                     <div className="analytics-co2-stat">
                         <p className="analytics-co2-label">Completed Trips Tracked</p>
@@ -247,11 +273,11 @@ const ProviderDashboard = () => {
                     </div>
                     <div className="analytics-co2-stat">
                         <p className="analytics-co2-label">Bikes</p>
-                        <p className="analytics-co2-value">{bikeCo2Kg.toFixed(2)} kg</p>
+                        <p className="analytics-co2-value" style={{ fontSize: '0.9rem' }}>Zero Emission</p>
                     </div>
                     <div className="analytics-co2-stat">
                         <p className="analytics-co2-label">Scooters</p>
-                        <p className="analytics-co2-value">{scooterCo2Kg.toFixed(2)} kg</p>
+                        <p className="analytics-co2-value" style={{ fontSize: '0.9rem' }}>Zero Emission</p>
                     </div>
                 </div>
             </div>
@@ -286,7 +312,17 @@ const ProviderDashboard = () => {
                     )}
                     <div className="input-group">
                         <label>Type</label>
-                        <select value={newVehicle.type} onChange={e => setNewVehicle({ ...newVehicle, type: e.target.value })}>
+                        <select
+                            value={newVehicle.type}
+                            onChange={e => {
+                                const nextType = e.target.value as NewVehicleFormState['type'];
+                                setNewVehicle({
+                                    ...newVehicle,
+                                    type: nextType,
+                                    fuelType: nextType === 'CAR' ? newVehicle.fuelType : 'electric'
+                                });
+                            }}
+                        >
                             <option value="CAR">Car</option>
                             <option value="BIKE">Bike</option>
                             <option value="SCOOTER">Scooter</option>
@@ -298,7 +334,7 @@ const ProviderDashboard = () => {
                             <input value={newVehicle.model} onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })} required />
                         </div>
                     )}
-                    {(newVehicle.type === 'CAR' || newVehicle.type === 'SCOOTER') && (
+                    {newVehicle.type === 'CAR' && (
                     <div className="input-group">
                         <label>Fuel Type</label>
                         <select value={newVehicle.fuelType} onChange={e => setNewVehicle({ ...newVehicle, fuelType: e.target.value })}>
@@ -340,111 +376,72 @@ const ProviderDashboard = () => {
                 <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
             </form>
 
-                <div className="provider-vehicle-list-card">
-                    <h3>Vehicles List</h3>
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID / Model</th>
-                                <th>Mobility Provider Company</th>
-                                <th>Pricing</th>
-                                <th>Availability</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {vehicles.map(v => (
-                                <tr key={v.id}>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <VehicleMedia
-                                                vehicle={v}
-                                                alt={getVehicleDisplayName(v)}
-                                                style={{
-                                                    width: 72,
-                                                    height: 52,
-                                                    borderRadius: 10,
-                                                    flex: '0 0 auto',
-                                                    border: '1px solid rgba(255, 255, 255, 0.35)'
-                                                }}
-                                                iconSize={26}
-                                            />
-                                            <span>{getVehicleDisplayName(v)}</span>
-                                        </div>
-                                    </td>
-                                    <td>{v.provider?.name || '-'}</td>
-                                    <td>
-                                        {editingVehicleId === v.id ? (
+            <h3>Vehicles List</h3>
+            <table className="data-table">
+                <thead>
+                    <tr>
+                        <th>ID / Model</th>
+                        <th>Mobility Provider Company</th>
+                        <th>Pricing</th>
+                        <th>Availability</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {vehicles.map(v => (
+                        <tr key={v.id}>
+                            <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
+                            <td>{v.provider?.name || '-'}</td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editVehicle.costPerMinute}
+                                        onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
+                                    />
+                                ) : (
+                                    <>${v.costPerMinute}/min</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <select
+                                        value={String(editVehicle.availability)}
+                                        onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
+                                    >
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                ) : (
+                                    <>{v.availability ? 'Yes' : 'No'}</>
+                                )}
+                            </td>
+                            <td>
+                                {editingVehicleId === v.id ? (
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        {v.car && (
                                             <input
-                                                type="number"
-                                                step="0.01"
-                                                value={editVehicle.costPerMinute}
-                                                onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
+                                                placeholder="Car model"
+                                                value={editVehicle.model}
+                                                onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
                                             />
-                                        ) : (
-                                            <>${v.costPerMinute}/min</>
                                         )}
-                                    </td>
-                                    <td>
-                                        {editingVehicleId === v.id ? (
-                                            <select
-                                                value={String(editVehicle.availability)}
-                                                onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
-                                            >
-                                                <option value="true">Yes</option>
-                                                <option value="false">No</option>
-                                            </select>
-                                        ) : (
-                                            <>{v.availability ? 'Yes' : 'No'}</>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {editingVehicleId === v.id ? (
-                                            <div style={{ display: 'grid', gap: 8 }}>
-                                                {v.car && (
-                                                    <input
-                                                        placeholder="Car model"
-                                                        value={editVehicle.model}
-                                                        onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
-                                                    />
-                                                )}
-                                                <input
-                                                    type="text"
-                                                    placeholder="https://example.com/vehicle.jpg"
-                                                    value={editVehicle.imageUrl}
-                                                    onChange={e => setEditVehicle({ ...editVehicle, imageUrl: e.target.value })}
-                                                />
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            void handleEditImageUpload(file);
-                                                        }
-                                                        e.currentTarget.value = '';
-                                                    }}
-                                                    disabled={uploadingEditImage}
-                                                />
-                                                {uploadingEditImage && <small>Uploading image...</small>}
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                    <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
-                                                    <button onClick={cancelEdit}>Cancel</button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'flex', gap: 8 }}>
-                                                <button onClick={() => startEdit(v)}>Edit</button>
-                                                <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            {vehicles.length === 0 && <tr><td colSpan={5}>No vehicles.</td></tr>}
-                        </tbody>
-                    </table>
-                </div>
+                                        <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
+                                        <button onClick={cancelEdit}>Cancel</button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => startEdit(v)}>Edit</button>
+                                        <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
+                                    </div>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                    {vehicles.length === 0 && <tr><td colSpan={4}>No vehicles.</td></tr>}
+                </tbody>
+            </table>
             </div>
         </div>
     );

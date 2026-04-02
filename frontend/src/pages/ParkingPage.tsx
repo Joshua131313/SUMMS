@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
+import { getErrorMessage } from '../lib/apiError';
+
+type ParkingSpot = {
+    id: string;
+    location: string;
+    reservedByCurrentUser?: boolean;
+    status: string;
+};
 
 const ParkingPage = () => {
-    const [spots, setSpots] = useState<any[]>([]);
+    const [spots, setSpots] = useState<ParkingSpot[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
     const getSpotCity = (location: string) => location.startsWith('Yonge St') ? 'Toronto' : 'Montreal';
@@ -10,7 +18,7 @@ const ParkingPage = () => {
     const fetchSpots = async () => {
         try {
             const res = await api.get('/parking-spots');
-            setSpots(res.data);
+            setSpots(res.data as ParkingSpot[]);
         } catch (e) {
             console.error(e);
         } finally {
@@ -35,8 +43,8 @@ const ParkingPage = () => {
             });
             setMsg('Spot reserved successfully (for 2 hours)!');
             fetchSpots();
-        } catch (err: any) {
-            setMsg(err.response?.data?.error || err.message);
+        } catch (err: unknown) {
+            setMsg(getErrorMessage(err, 'Unable to reserve this spot.'));
         }
     };
 
@@ -45,8 +53,8 @@ const ParkingPage = () => {
             await api.delete(`/parking-spots/reservations/${spotId}`);
             setMsg('Spot unreserved successfully!');
             fetchSpots();
-        } catch (err: any) {
-            setMsg(err.response?.data?.error || err.message);
+        } catch (err: unknown) {
+            setMsg(getErrorMessage(err, 'Unable to unreserve this spot.'));
         }
     };
 

@@ -1,13 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { BusFront, CalendarCheck2, CarFront, SquareParking, UserRound } from 'lucide-react';
-import { useAuth } from '../features/auth/context/AuthContext';
+import { useAuth } from '../features/auth/context/useAuth';
 import Button from '../components/ui/Button/Button';
 import api from '../lib/api';
+import type { RentalsAnalytics } from '../types/analytics';
 
 const DashboardPage = () => {
     const { profile, recommendations, loadingRecommendation } = useAuth();
-    const [providerAnalytics, setProviderAnalytics] = useState<any>(null);
+    const [providerAnalytics, setProviderAnalytics] = useState<RentalsAnalytics | null>(null);
     const [loadingProviderAnalytics, setLoadingProviderAnalytics] = useState(false);
 
     useEffect(() => {
@@ -20,7 +21,7 @@ const DashboardPage = () => {
             setLoadingProviderAnalytics(true);
             try {
                 const res = await api.get('/admin/analytics/rentals');
-                setProviderAnalytics(res.data);
+                setProviderAnalytics(res.data as RentalsAnalytics);
             } catch (error) {
                 console.error('Failed to load provider analytics', error);
             } finally {
