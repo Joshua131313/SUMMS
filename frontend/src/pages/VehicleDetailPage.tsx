@@ -7,6 +7,7 @@ import type { VehicleWithMedia } from '../components/vehicles/vehicleMedia.share
 type Vehicle = {
     costPerMinute: number;
     availability: boolean;
+    nextAvailableAt?: string | null;
 } & VehicleWithMedia;
 
 const VehicleDetailPage = () => {
@@ -15,6 +16,16 @@ const VehicleDetailPage = () => {
     const [vehicle, setVehicle] = useState<Vehicle | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    const formatAvailableAt = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleString([], { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    };
 
     const [reservation, setReservation] = useState(() => {
         const start = new Date();
@@ -78,6 +89,11 @@ const VehicleDetailPage = () => {
                
                 <p>Price per minute: ${vehicle.costPerMinute}</p>
                 <p>Availability: {vehicle.availability ? 'Available' : 'Currently Rented'}</p>
+                {!vehicle.availability && vehicle.nextAvailableAt && (
+                    <p style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', marginTop: '4px' }}>
+                        Next available: {formatAvailableAt(vehicle.nextAvailableAt)}
+                    </p>
+                )}
             </div>
             <div></div>
             {vehicle.availability && (

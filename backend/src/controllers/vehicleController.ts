@@ -27,11 +27,25 @@ export const searchVehicles = async (req: Request, res: Response) => {
                 car: true,
                 bike: true,
                 scooter: true,
-                provider: true
+                provider: true,
+                bookings: {
+                    where: {
+                        OR: [
+                            { status: 'ACTIVE' },
+                            { status: 'RESERVED' }
+                        ],
+                        endTime: { gte: new Date() }
+                    },
+                    orderBy: { endTime: 'desc' },
+                    take: 1
+                }
             }
         });
 
-        res.json(vehicles);
+        res.json(vehicles.map(v => ({
+            ...v,
+            nextAvailableAt: !v.availability && v.bookings[0] ? v.bookings[0].endTime : null
+        })));
     } catch (error: any) {
         res.status(500).json({ error: 'Failed to fetch vehicles', details: error.message });
     }
@@ -46,7 +60,18 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
                 car: true,
                 bike: true,
                 scooter: true,
-                provider: true
+                provider: true,
+                bookings: {
+                    where: {
+                        OR: [
+                            { status: 'ACTIVE' },
+                            { status: 'RESERVED' }
+                        ],
+                        endTime: { gte: new Date() }
+                    },
+                    orderBy: { endTime: 'desc' },
+                    take: 1
+                }
             }
         });
 
@@ -54,7 +79,10 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
 
-        res.json(vehicle);
+        res.json({
+            ...vehicle,
+            nextAvailableAt: !vehicle.availability && vehicle.bookings[0] ? vehicle.bookings[0].endTime : null
+        });
     } catch (error: any) {
         res.status(500).json({ error: 'Failed to fetch vehicle details', details: error.message });
     }
