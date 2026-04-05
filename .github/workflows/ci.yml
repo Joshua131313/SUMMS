@@ -1,11 +1,13 @@
-name: CI
-
 on:
   push:
     branches:
       - main
       - dev
   pull_request:
+
+permissions:
+  pull-requests: write
+  contents: read
 
 jobs:
   frontend:
@@ -34,7 +36,7 @@ jobs:
         run: npm run lint --if-present
 
       - name: Run tests with coverage
-        run: npx --yes c8 --reporter=lcov node src/tests/rentals.unitTests.mjs
+        run: node src/tests/rentals.unitTests.mjs --coverage
 
       - name: Debug coverage files
         run: |
@@ -78,7 +80,7 @@ jobs:
         run: npm run lint --if-present
 
       - name: Run tests with coverage
-        run: npx --yes c8 --reporter=lcov node src/tests/rentals.unitTests.mjs
+        run: node src/tests/rentals.unitTests.mjs --coverage
 
       - name: Debug coverage files
         run: |
