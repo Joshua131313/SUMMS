@@ -17,8 +17,10 @@ const bookingTests: ControllerTest[] = [
         name: 'getMyBookings - fetches user bookings with fallback vehicle names',
         async run() {
             stub(prisma.booking, 'findMany', async () => [
-                { id: 'b1', transport: { car: { model: 'Tesla' } } },
-                { id: 'b2', transport: { scooter: true } }
+                { id: 'b1', transport: { car: { model: 'Civic' } } },
+                { id: 'b2', transport: { bike: true } },
+                { id: 'b3', transport: { scooter: true } },
+                { id: 'b4', transport: {} } // Hits 'Mobility Vehicle'
             ]);
 
             const req = mockRequest({ user: { id: 'u1' } });
@@ -27,8 +29,20 @@ const bookingTests: ControllerTest[] = [
             await getMyBookings(req, res);
 
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData[0].vehicleName, 'Tesla');
-            assert.equal(res.jsonData[1].vehicleName, 'Scooter');
+            assert.equal(res.jsonData[0].vehicleName, 'Civic');
+            assert.equal(res.jsonData[1].vehicleName, 'Bike');
+            assert.equal(res.jsonData[2].vehicleName, 'Scooter');
+            assert.equal(res.jsonData[3].vehicleName, 'Mobility Vehicle');
+        }
+    },
+    {
+        name: 'getMyBookings - 500 error',
+        async run() {
+            stub(prisma.booking, 'findMany', async () => { throw new Error('fail'); });
+            const req = mockRequest({ user: { id: 'u1' } });
+            const res = mockResponse();
+            await getMyBookings(req, res);
+            assert.equal(res.statusCode, 500);
         }
     },
     {

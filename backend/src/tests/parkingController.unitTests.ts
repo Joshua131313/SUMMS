@@ -31,6 +31,15 @@ const parkingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'listSpots - 500 error',
+        async run() {
+            stub(prisma.parkingSpot, 'findMany', async () => { throw new Error('fail'); });
+            const res = mockResponse();
+            await listSpots(mockRequest(), res);
+            assert.equal(res.statusCode, 500);
+        }
+    },
+    {
         name: 'reserveSpot - overlaps return 400',
         async run() {
             stub(prisma.parkingReservation, 'findFirst', async () => ({ id: 'res1' }));

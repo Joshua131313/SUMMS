@@ -159,6 +159,51 @@ const providerTests: ControllerTest[] = [
         }
     },
     {
+        name: 'updateVehicle - updates bike data without availability service',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({ providerId: 'p1', bike: true }));
+            let passedUpdateData: any;
+            stub(prisma.transport, 'update', async (opts: any) => { passedUpdateData = opts.data; return { id: 'v1' }; });
+
+            const req = mockRequest({ 
+                params: { id: 'v1' }, 
+                body: { imageUrl: 'new-image' },
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(passedUpdateData.bike.update.imageUrl, 'new-image');
+            assert.equal(res.jsonData.id, 'v1'); // availabilityManagedTransport skips service
+        }
+    },
+    {
+        name: 'updateVehicle - updates scooter data and omits req.user.id in availUpdate if anonymous',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({ providerId: 'p1', scooter: true }));
+            let passedUpdateData: any;
+            let passedAvailData: any;
+            stub(prisma.transport, 'update', async (opts: any) => { passedUpdateData = opts.data; return { id: 'v1' }; });
+            stub(vehicleAvailabilityService, 'updateAvailability', async (opts: any) => { passedAvailData = opts; return { id: 'v1' }; });
+
+            const req = mockRequest({ 
+                params: { id: 'v1' }, 
+                body: { fuelType: 'GAS', imageUrl: 'scoot-image', availability: false },
+                user: { role: 'ADMIN' } // No ID purposely to hit falsy req.user?.id
+            });
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(passedUpdateData.scooter.update.fuelType, 'GAS');
+            assert.equal(passedUpdateData.scooter.update.imageUrl, 'scoot-image');
+            assert.equal(passedAvailData.actorUserId, undefined);
+        }
+    },
+    {
         name: 'updateVehicle - 404/403 blocks',
         async run() {
             stub(prisma.transport, 'findUnique', async () => null);

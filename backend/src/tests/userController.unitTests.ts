@@ -16,6 +16,16 @@ const userTests: ControllerTest[] = [
         }
     },
     {
+        name: 'getMe - 500 error',
+        async run() {
+            const req = mockRequest();
+            Object.defineProperty(req, 'user', { get() { throw new Error('fail'); } });
+            const res = mockResponse();
+            await getMe(req, res);
+            assert.equal(res.statusCode, 500);
+        }
+    },
+    {
         name: 'getAllUsers - fetches user list',
         async run() {
             stub(prisma.userProfile, 'findMany', async () => [{ id: 'u1' }, { id: 'u2' }]);
