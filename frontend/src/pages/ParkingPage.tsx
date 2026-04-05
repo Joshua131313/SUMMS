@@ -34,7 +34,7 @@ const ParkingPage = () => {
     const [spots, setSpots] = useState<ParkingSpot[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
-    const getSpotCity = (location: string) => "Montreal"; 
+    const getSpotCity = (_location: string) => "Montreal"; 
 
     const fetchSpots = async () => {
         try {

@@ -44,6 +44,7 @@ jobs:
           flags: frontend
           name: frontend-coverage
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
 
   backend:
     name: Backend
@@ -81,3 +82,4 @@ jobs:
           flags: backend
           name: backend-coverage
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
