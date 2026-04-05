@@ -4,6 +4,7 @@ import L from 'leaflet';
 import api from '../lib/api';
 import { getErrorMessage } from '../lib/apiError';
 
+// Fix for Leaflet default icon issues in React/Webpack/Vite
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
