@@ -4,7 +4,6 @@ import L from 'leaflet';
 import api from '../lib/api';
 import { getErrorMessage } from '../lib/apiError';
 
-// Fix for Leaflet default icon issues in React/Webpack/Vite
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -34,7 +33,7 @@ const ParkingPage = () => {
     const [spots, setSpots] = useState<ParkingSpot[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
-    const getSpotCity = (location: string) => "Montreal"; 
+    const getSpotCity = (location: string) => "Montreal";
 
     const fetchSpots = async () => {
         try {
@@ -104,16 +103,16 @@ const ParkingPage = () => {
                                         </div>
                                         <div style={{ marginTop: '10px' }}>
                                             {spot.status === 'AVAILABLE' ? (
-                                                <button 
-                                                    className="rentals-pay-btn" 
+                                                <button
+                                                    className="rentals-pay-btn"
                                                     onClick={() => reserveSpot(spot.id)}
                                                     style={{ padding: '4px 10px', fontSize: '0.8rem' }}
                                                 >
                                                     Reserve Now
                                                 </button>
                                             ) : spot.reservedByCurrentUser && (
-                                                <button 
-                                                    className="del-btn" 
+                                                <button
+                                                    className="del-btn"
                                                     onClick={() => unreserveSpot(spot.id)}
                                                     style={{ padding: '4px 10px', fontSize: '0.8rem' }}
                                                 >
@@ -156,7 +155,7 @@ const ParkingPage = () => {
                     ))}
                 </div>
             )}
-            
+
             {!loading && spots.length === 0 && (
                 <p>No parking spots found.</p>
             )}
