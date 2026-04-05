@@ -1,19 +1,40 @@
 import { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
 import api from '../lib/api';
 import { getErrorMessage } from '../lib/apiError';
+
+// Fix for Leaflet default icon issues in React/Webpack/Vite
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+const DefaultIcon = L.icon({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 type ParkingSpot = {
     id: string;
     location: string;
     reservedByCurrentUser?: boolean;
     status: string;
+    latitude?: number;
+    longitude?: number;
 };
 
 const ParkingPage = () => {
     const [spots, setSpots] = useState<ParkingSpot[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
-    const getSpotCity = (location: string) => location.startsWith('Yonge St') ? 'Toronto' : 'Montreal';
+    const getSpotCity = () => "Montreal";
 
     const fetchSpots = async () => {
         try {
@@ -32,7 +53,6 @@ const ParkingPage = () => {
 
     const reserveSpot = async (spotId: string) => {
         try {
-            // Mock hardcoded time for reservation
             const start = new Date();
             const end = new Date(start.getTime() + 7200000); // 2 hours
 
@@ -58,21 +78,66 @@ const ParkingPage = () => {
         }
     };
 
+    const defaultCenter: [number, number] = [45.4971, -73.5789]; // Concordia University, Montreal
+
     return (
         <div className="page-container">
             <h1 className="text-5xl font-bold mb-12">Parking Availability</h1>
 
             {msg && <p className="status-msg">{msg}</p>}
 
-            {loading ? <p>Loading...</p> : (
+            {!loading && spots.length > 0 && (
+                <div className="parking-map-container">
+                    <MapContainer center={defaultCenter} zoom={13} scrollWheelZoom={false}>
+                        <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        {spots.filter(s => s.latitude && s.longitude).map(spot => (
+                            <Marker key={spot.id} position={[spot.latitude!, spot.longitude!]}>
+                                <Popup>
+                                    <div className="map-popup-content">
+                                        <h3>{spot.location}</h3>
+                                        <p>City: {getSpotCity()}</p>
+                                        <div className={`map-status-badge ${spot.status === 'AVAILABLE' ? 'map-status-available' : 'map-status-reserved'}`}>
+                                            {spot.status}
+                                        </div>
+                                        <div style={{ marginTop: '10px' }}>
+                                            {spot.status === 'AVAILABLE' ? (
+                                                <button
+                                                    className="rentals-pay-btn"
+                                                    onClick={() => reserveSpot(spot.id)}
+                                                    style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                                                >
+                                                    Reserve Now
+                                                </button>
+                                            ) : spot.reservedByCurrentUser && (
+                                                <button
+                                                    className="del-btn"
+                                                    onClick={() => unreserveSpot(spot.id)}
+                                                    style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                                                >
+                                                    Unreserve
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        ))}
+                    </MapContainer>
+                </div>
+            )}
+
+            {loading ? <p>Loading parking spots...</p> : (
                 <div className="grid">
                     {spots.map(spot => (
                         <div
                             key={spot.id}
-                            className={spot.reservedByCurrentUser ? 'card parking-reserved-card' : 'card'}
+                            className={spot.status === 'RESERVED' ? 'card parking-reserved-card' : 'card'}
                         >
                             <h3>{spot.location}</h3>
-                            <p>City: {getSpotCity(spot.location)}</p>
+                            <p>City: {getSpotCity()}</p>
                             <p>Status: {spot.status}</p>
                             {spot.status === 'AVAILABLE' ? (
                                 <button className="rentals-pay-btn" onClick={() => reserveSpot(spot.id)}>
@@ -90,6 +155,10 @@ const ParkingPage = () => {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {!loading && spots.length === 0 && (
+                <p>No parking spots found.</p>
             )}
         </div>
     );

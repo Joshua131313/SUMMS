@@ -8,6 +8,7 @@ type Vehicle = {
   id: string;
   costPerMinute: number;
   availability: boolean;
+  nextAvailableAt?: string | null;
   provider?: { name?: string | null } | null;
 } & VehicleWithMedia;
 
@@ -17,6 +18,16 @@ const VehiclesPage = () => {
     const [typeFilter, setTypeFilter] = useState('');
     const [priceFilter, setPriceFilter] = useState('5.00');
     const navigate = useNavigate();
+
+    const formatAvailableAt = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleString([], { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    };
 
     const minPrice = 0.05;
     const maxPrice = 5.0;
@@ -139,6 +150,11 @@ const VehiclesPage = () => {
                       {v.availability ? 'Yes' : 'No'}
                     </span>
                   </p>
+                  {!v.availability && v.nextAvailableAt && (
+                    <p className="text-xs text-gray-500 mt-1 italic">
+                      Next available: {formatAvailableAt(v.nextAvailableAt)}
+                    </p>
+                  )}
                 </div>
 
                             <button

@@ -1,0 +1,142 @@
+import assert from 'node:assert/strict';
+import { searchVehicles, getVehicleDetails, getRecommendedVehicles } from '../controllers/vehicleController.js';
+import { stub, mockRequest, mockResponse } from './support/testHelpers.js';
+import prisma from '../prisma.js';
+import { vehicleRecommendationService } from '../services/recommendations/vehicleRecommendationService.js';
+import type { ControllerTest } from './controllers.unitTests.js';
+
+const vehicleTests: ControllerTest[] = [
+    {
+        name: 'searchVehicles - builds correct where clause based on query',
+        async run() {
+            let givenWhere: any;
+            stub(prisma.transport, 'findMany', async (opts: any) => { givenWhere = opts.where; return []; });
+
+            const req = mockRequest({ query: { availability: 'true', maxPrice: '2.5', type: 'car' } });
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(givenWhere.availability, true);
+            assert.equal(givenWhere.costPerMinute.lte, 2.5);
+            assert.notEqual(givenWhere.car.isNot, undefined);
+        }
+    },
+    {
+        name: 'searchVehicles - formats nextAvailableAt correctly when booked',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                { id: 'v1', availability: true, bookings: [] },
+                { id: 'v2', availability: false, bookings: [{ endTime: new Date('2026-01-01') }] }
+            ]);
+
+            const req = mockRequest();
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData[0].nextAvailableAt, null);
+            assert.equal(res.jsonData[1].nextAvailableAt.toISOString(), new Date('2026-01-01').toISOString());
+        }
+    },
+    {
+        name: 'searchVehicles - 500 error',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => { throw new Error('fail'); });
+            const req = mockRequest();
+            const res = mockResponse();
+            await searchVehicles(req, res);
+            assert.equal(res.statusCode, 500);
+        }
+    },
+    {
+        name: 'getVehicleDetails - 404',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => null);
+            const req = mockRequest({ params: { id: 'v1' } });
+            const res = mockResponse();
+            await getVehicleDetails(req, res);
+            assert.equal(res.statusCode, 404);
+        }
+    },
+    {
+        name: 'getVehicleDetails - success with nextAvailableAt formatting (null)',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({ id: 'v3', availability: true, bookings: [] }));
+            const req = mockRequest({ params: { id: 'v3' } });
+            const res = mockResponse();
+            await getVehicleDetails(req, res);
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.nextAvailableAt, null);
+        }
+    },
+    {
+        name: 'getVehicleDetails - success with nextAvailableAt formatting',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({ id: 'v2', availability: false, bookings: [{ endTime: new Date('2026-02-02') }] }));
+            const req = mockRequest({ params: { id: 'v2' } });
+            const res = mockResponse();
+            await getVehicleDetails(req, res);
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.nextAvailableAt.toISOString(), new Date('2026-02-02').toISOString());
+        }
+    },
+    {
+        name: 'getVehicleDetails - 500 error',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => { throw new Error('fail'); });
+            const req = mockRequest({ params: { id: 'v2' } });
+            const res = mockResponse();
+            await getVehicleDetails(req, res);
+            assert.equal(res.statusCode, 500);
+        }
+    },
+    {
+        name: 'getRecommendedVehicles - succeeds with no query constraints',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [{ id: 'v2' }]);
+            stub(vehicleRecommendationService, 'recommend', (opts: any) => ({ recommendation: 'best-vehicle-2', opts }));
+
+            const req = mockRequest({ query: {}, user: {} });
+            const res = mockResponse();
+
+            await getRecommendedVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.recommendation, 'best-vehicle-2');
+            assert.equal(res.jsonData.opts.requestedType, undefined);
+        }
+    },
+    {
+        name: 'getRecommendedVehicles - combines params and service output',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [{ id: 'v1' }]);
+            stub(vehicleRecommendationService, 'recommend', (opts: any) => ({ recommendation: 'best-vehicle', opts }));
+
+            const req = mockRequest({ query: { type: 'bike' }, user: { preferredMobility: 'bike', city: 'Toronto' } });
+            const res = mockResponse();
+
+            await getRecommendedVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.recommendation, 'best-vehicle');
+            assert.equal(res.jsonData.opts.requestedType, 'bike');
+            assert.equal(res.jsonData.opts.preferredMobility, 'bike');
+            assert.equal(res.jsonData.opts.city, 'Toronto');
+        }
+    },
+    {
+        name: 'getRecommendedVehicles - 500 error',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => { throw new Error('fail'); });
+            const req = mockRequest();
+            const res = mockResponse();
+            await getRecommendedVehicles(req, res);
+            assert.equal(res.statusCode, 500);
+        }
+    }
+];
+
+export default vehicleTests;

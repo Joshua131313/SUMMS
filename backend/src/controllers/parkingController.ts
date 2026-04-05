@@ -22,11 +22,22 @@ export const listSpots = async (req: Request, res: Response) => {
             const activeReservation = spot.reservations[0] ?? null;
             const effectiveStatus = activeReservation ? 'RESERVED' : 'AVAILABLE';
 
+            // Mock coordinates near Concordia University (SGW Campus), Montreal
+            let latitude = 45.4971; 
+            let longitude = -73.5789;
+
+            // Add some random offsets for variety
+            latitude += (Math.random() - 0.5) * 0.005;
+            longitude += (Math.random() - 0.5) * 0.005;
+
             return {
                 ...spot,
+                location: spot.location.replace('Toronto', 'Montreal').replace('Yonge St', 'St Catherine St').replace('Main St', 'Sherbrooke St'),
                 status: effectiveStatus,
                 activeReservation,
-                reservedByCurrentUser: activeReservation?.clientId === userId
+                reservedByCurrentUser: activeReservation?.clientId === userId,
+                latitude,
+                longitude
             };
         }));
     } catch (error: any) {

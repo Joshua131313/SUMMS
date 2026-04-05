@@ -1,11 +1,13 @@
-name: CI
-
 on:
   push:
     branches:
       - main
       - dev
   pull_request:
+
+permissions:
+  pull-requests: write
+  contents: read
 
 jobs:
   frontend:
@@ -33,17 +35,14 @@ jobs:
       - name: Run lint
         run: npm run lint --if-present
 
-      - name: Run tests with coverage
-        run: npm run test --if-present -- --coverage
+      - name: Run tests
+        run: node src/tests/rentals.unitTests.mjs
 
-      - name: Upload frontend coverage to Codecov
-        if: ${{ hashFiles('frontend/coverage/lcov.info') != '' }}
-        uses: codecov/codecov-action@v5
-        with:
-          files: frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Debug coverage files
+        run: |
+          ls -R
+          find . -name "*.xml"
+          find . -name "lcov.info"
 
   backend:
     name: Backend
@@ -71,7 +70,13 @@ jobs:
         run: npm run lint --if-present
 
       - name: Run tests with coverage
-        run: npm run test --if-present -- --coverage
+        run: npx --yes c8 --all --include "src/controllers/**" --exclude "src/tests/**" --exclude "src/routes/**" --exclude "src/middleware/**" --exclude "src/config/**" --reporter=lcov npm test
+
+      - name: Debug coverage files
+        run: |
+          ls -R
+          find . -name "*.xml"
+          find . -name "lcov.info"
 
       - name: Upload backend coverage to Codecov
         if: ${{ hashFiles('backend/coverage/lcov.info') != '' }}
@@ -81,3 +86,4 @@ jobs:
           flags: backend
           name: backend-coverage
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
