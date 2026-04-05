@@ -34,7 +34,7 @@ const ParkingPage = () => {
     const [spots, setSpots] = useState<ParkingSpot[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
-    const getSpotCity = (location: string) => "Montreal";
+    const getSpotCity = () => "Montreal";
 
     const fetchSpots = async () => {
         try {
@@ -98,7 +98,7 @@ const ParkingPage = () => {
                                 <Popup>
                                     <div className="map-popup-content">
                                         <h3>{spot.location}</h3>
-                                        <p>City: {getSpotCity(spot.location)}</p>
+                                        <p>City: {getSpotCity()}</p>
                                         <div className={`map-status-badge ${spot.status === 'AVAILABLE' ? 'map-status-available' : 'map-status-reserved'}`}>
                                             {spot.status}
                                         </div>
@@ -137,7 +137,7 @@ const ParkingPage = () => {
                             className={spot.status === 'RESERVED' ? 'card parking-reserved-card' : 'card'}
                         >
                             <h3>{spot.location}</h3>
-                            <p>City: {getSpotCity(spot.location)}</p>
+                            <p>City: {getSpotCity()}</p>
                             <p>Status: {spot.status}</p>
                             {spot.status === 'AVAILABLE' ? (
                                 <button className="rentals-pay-btn" onClick={() => reserveSpot(spot.id)}>
