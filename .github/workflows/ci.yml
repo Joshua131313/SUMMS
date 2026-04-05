@@ -70,7 +70,7 @@ jobs:
         run: npm run lint --if-present
 
       - name: Run tests with coverage
-        run: npx --yes c8 --all --include "src/controllers/**" --exclude "src/tests/**" --exclude "src/routes/**" --exclude "src/middleware/**" --exclude "src/config/**" --reporter=lcov node src/tests/rentals.unitTests.mjs
+        run: npx --yes c8 --all --include "src/controllers/**" --exclude "src/tests/**" --exclude "src/routes/**" --exclude "src/middleware/**" --exclude "src/config/**" --reporter=lcov npm test
 
       - name: Debug coverage files
         run: |
