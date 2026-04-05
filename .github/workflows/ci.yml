@@ -34,7 +34,13 @@ jobs:
         run: npm run lint --if-present
 
       - name: Run tests with coverage
-        run: npm run test --if-present -- --coverage
+        run: npx --yes c8 --reporter=lcov node src/tests/rentals.unitTests.mjs
+
+      - name: Debug coverage files
+        run: |
+          ls -R
+          find . -name "*.xml"
+          find . -name "lcov.info"
 
       - name: Upload frontend coverage to Codecov
         if: ${{ hashFiles('frontend/coverage/lcov.info') != '' }}
@@ -72,7 +78,13 @@ jobs:
         run: npm run lint --if-present
 
       - name: Run tests with coverage
-        run: npm run test --if-present -- --coverage
+        run: npx --yes c8 --reporter=lcov node src/tests/rentals.unitTests.mjs
+
+      - name: Debug coverage files
+        run: |
+          ls -R
+          find . -name "*.xml"
+          find . -name "lcov.info"
 
       - name: Upload backend coverage to Codecov
         if: ${{ hashFiles('backend/coverage/lcov.info') != '' }}
