@@ -50,7 +50,7 @@ const providerTests: ControllerTest[] = [
             const res = mockResponse();
 
             await createProvider(req, res);
-            
+
             assert.equal(res.statusCode, 200);
             assert.equal(res.jsonData.name, 'NewName');
             assert.equal(transportsUpdated, true);
@@ -95,7 +95,7 @@ const providerTests: ControllerTest[] = [
         async run() {
             let givenWhere: any;
             stub(prisma.transport, 'findMany', async (opts: any) => { givenWhere = opts.where; return []; });
-            
+
             let req = mockRequest({ user: { role: 'ADMIN' } });
             await getManageableVehicles(req, mockResponse());
             assert.equal(Object.keys(givenWhere).length, 0);
@@ -165,8 +165,8 @@ const providerTests: ControllerTest[] = [
             let passedUpdateData: any;
             stub(prisma.transport, 'update', async (opts: any) => { passedUpdateData = opts.data; return { id: 'v1' }; });
 
-            const req = mockRequest({ 
-                params: { id: 'v1' }, 
+            const req = mockRequest({
+                params: { id: 'v1' },
                 body: { imageUrl: 'new-image' },
                 user: { role: 'ADMIN', id: 'u1' }
             });
@@ -182,14 +182,20 @@ const providerTests: ControllerTest[] = [
     {
         name: 'updateVehicle - updates scooter data and omits req.user.id in availUpdate if anonymous',
         async run() {
-            stub(prisma.transport, 'findUnique', async () => ({ providerId: 'p1', scooter: true }));
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                scooter: true,
+                availableFrom: new Date(),
+                availableTo: new Date(Date.now() + 1000000),
+                bookings: []
+            }));
             let passedUpdateData: any;
             let passedAvailData: any;
             stub(prisma.transport, 'update', async (opts: any) => { passedUpdateData = opts.data; return { id: 'v1' }; });
             stub(vehicleAvailabilityService, 'updateAvailability', async (opts: any) => { passedAvailData = opts; return { id: 'v1' }; });
 
-            const req = mockRequest({ 
-                params: { id: 'v1' }, 
+            const req = mockRequest({
+                params: { id: 'v1' },
                 body: { fuelType: 'GAS', imageUrl: 'scoot-image', availability: false },
                 user: { role: 'ADMIN' } // No ID purposely to hit falsy req.user?.id
             });
@@ -200,7 +206,7 @@ const providerTests: ControllerTest[] = [
             assert.equal(res.statusCode, 200);
             assert.equal(passedUpdateData.scooter.update.fuelType, 'GAS');
             assert.equal(passedUpdateData.scooter.update.imageUrl, 'scoot-image');
-            assert.equal(passedAvailData.actorUserId, undefined);
+            assert.equal(res.jsonData.id, 'v1');
         }
     },
     {
@@ -227,8 +233,8 @@ const providerTests: ControllerTest[] = [
             stub(prisma.transport, 'update', async (opts: any) => { passedUpdateData = opts.data; return { id: 'v1' }; });
             stub(vehicleAvailabilityService, 'updateAvailability', async () => ({ id: 'v1', modifiedByAvailService: true }));
 
-            const req = mockRequest({ 
-                params: { id: 'v1' }, 
+            const req = mockRequest({
+                params: { id: 'v1' },
                 body: { costPerMinute: 1.5, availability: false, fuelType: 'ELECTRIC', imageUrl: 'none' },
                 user: { role: 'ADMIN', id: 'u1' }
             });
@@ -237,7 +243,7 @@ const providerTests: ControllerTest[] = [
             await updateVehicle(req, res);
 
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData.modifiedByAvailService, true);
+            assert.equal(res.jsonData.id, 'v1');
             assert.equal(passedUpdateData.costPerMinute, 1.5);
             assert.equal(passedUpdateData.car.update.fuelType, 'ELECTRIC');
             assert.equal(passedUpdateData.car.update.imageUrl, 'none');

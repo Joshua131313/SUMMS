@@ -8,6 +8,7 @@ import { paymentCreator } from '../services/creators/paymentCreator.js';
 import { accessLogCreator } from '../services/creators/accessLogCreator.js';
 
 import prisma from '../prisma.js';
+import { getAvailableSlots } from '../utils/availability.js';
 export const getMyBookings = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
@@ -46,31 +47,60 @@ export const reserveVehicle = async (req: Request, res: Response) => {
         const { transportId, departure, destination, startTime, endTime } = req.body;
 
         const transport = await prisma.transport.findUnique({
-            where: { id: transportId }
+            where: { id: transportId },
+            include: {
+                bookings: true
+            }
         });
 
-        if (!transport || !transport.availability) {
+        if (!transport) {
             return res.status(400).json({ error: 'Vehicle is not available' });
         }
 
-        // Check overlaps
         const start = new Date(startTime);
         const end = new Date(endTime);
+
+        if (start >= end) {
+            return res.status(400).json({ error: 'Invalid time range' });
+        }
+
+        const availableSlots = getAvailableSlots(
+            transport.availableFrom,
+            transport.availableTo,
+            transport.bookings
+        );
+
+        const isValidSlot = availableSlots.some(slot => {
+            const s = new Date(slot.start);
+            const e = new Date(slot.end);
+            return start >= s && end <= e;
+        });
+
+        if (!isValidSlot) {
+            return res.status(400).json({
+                error: 'Selected time is not within available slots'
+            });
+        }
+
         const overlapping = await prisma.booking.findFirst({
             where: {
                 transportId,
                 status: { in: ['RESERVED', 'ACTIVE'] },
                 OR: [
-                    { startTime: { lte: end }, endTime: { gte: start } }
+                    {
+                        startTime: { lte: end },
+                        endTime: { gte: start }
+                    }
                 ]
             }
         });
 
         if (overlapping) {
-            return res.status(400).json({ error: 'Vehicle already booked for this time period' });
+            return res.status(400).json({
+                error: 'Vehicle already booked for this time period'
+            });
         }
 
-        // Create a Trip for this booking
         const { booking } = await bookingCreator.create({
             clientId: userId,
             transportId,
@@ -80,16 +110,28 @@ export const reserveVehicle = async (req: Request, res: Response) => {
             endTime: end
         });
 
-        // Write access log
         await accessLogCreator.create({
             userId,
             serviceType: 'RENTAL'
         });
 
         res.status(201).json(booking);
+
     } catch (error: any) {
-        fs.writeFileSync('c:\\SUMMS\\error.log', error.message + '\n' + error.stack);
-        res.status(500).json({ error: 'Failed to reserve vehicle', details: error.message });
+        try {
+            const dir = 'c:\\SUMMS';
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir);
+            }
+            fs.writeFileSync(`${dir}\\error.log`, error.message + '\n' + error.stack);
+        } catch {
+
+        }
+
+        res.status(500).json({
+            error: 'Failed to reserve vehicle',
+            details: error.message
+        });
     }
 };
 
@@ -182,10 +224,10 @@ export const endRental = async (req: Request, res: Response) => {
         const distanceKm = (durationMinutes / 60) * AVERAGE_SPEED_KMH;
 
         let emissionFactorGPerKm = 0;
-        if(booking.transport.car){
+        if (booking.transport.car) {
             emissionFactorGPerKm = booking.transport.car.emissionFactorGPerKm;
         }
-        else if(booking.transport.scooter){
+        else if (booking.transport.scooter) {
             emissionFactorGPerKm = booking.transport.scooter.emissionFactorGPerKm;
         }
 
@@ -364,7 +406,7 @@ export const getCo2Summary = async (req: Request, res: Response) => {
         const summary = bookings.reduce((acc: Record<string, number>, booking: typeof bookings[0]) => {
             const type = booking.transport.car ? 'car'
                 : booking.transport.scooter ? 'scooter'
-                : 'bike';
+                    : 'bike';
             acc[type] = (acc[type] || 0) + (booking.co2Kg || 0);
             acc.total = (acc.total || 0) + (booking.co2Kg || 0);
             acc.trips = (acc.trips || 0) + 1;

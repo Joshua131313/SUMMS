@@ -5,12 +5,21 @@ import VehicleMedia from '../components/vehicles/VehicleMedia';
 import { getVehicleDisplayName, type VehicleWithMedia } from '../components/vehicles/vehicleMedia.shared';
 
 type Vehicle = {
-  id: string;
-  costPerMinute: number;
-  availability: boolean;
-  nextAvailableAt?: string | null;
-  provider?: { name?: string | null } | null;
+    id: string;
+    costPerMinute: number;
+    availableSlots: { start: string; end: string }[];
+    isAvailable: boolean;
+    provider?: { name?: string | null } | null;
 } & VehicleWithMedia;
+
+const format = (date: string) =>
+    new Date(date).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
 
 const VehiclesPage = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -18,16 +27,6 @@ const VehiclesPage = () => {
     const [typeFilter, setTypeFilter] = useState('');
     const [priceFilter, setPriceFilter] = useState('5.00');
     const navigate = useNavigate();
-
-    const formatAvailableAt = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleString([], { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-    };
 
     const minPrice = 0.05;
     const maxPrice = 5.0;
@@ -107,65 +106,79 @@ const VehiclesPage = () => {
                 </div>
             </div>
 
-        {loading ? (
-          <p className="text-gray-500">Loading...</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vehicles.map((v) => (
-              <div
-                key={v.id}
-                className="bg-white rounded-xl shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition"
-              >
-                <VehicleMedia
-                  vehicle={v}
-                  alt={getVehicleDisplayName(v)}
-                  className="h-40 w-full object-cover mb-4"
-                />
+            {loading ? (
+                <p className="text-gray-500">Loading...</p>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {vehicles.map((v) => {
 
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold mb-2">
-                    {v.car?.model || (v.bike ? 'Bike' : 'Scooter')}
-                  </h3>
-                  {(v.car?.fuelType === 'electric' || v.scooter?.fuelType === 'electric' || v.bike) && (
-                  <span className="inline-block bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2">
-                    Zero emissions
-                  </span>
-                  )}
-                  <p className="text-sm text-gray-600 mb-1">
-                    Type: {v.car ? 'Car' : v.bike ? 'Bike' : 'Scooter'}
-                  </p>
-                  <p className="text-sm text-gray-600 mb-1">
-                    Price:{' '}
-                    <span className="font-medium">${v.costPerMinute}/min</span>
-                  </p>
-                  <p className="text-sm">
-                    Available:{' '}
-                    <span
-                      className={
-                        v.availability
-                          ? 'text-green-600 font-medium'
-                          : 'text-red-500'
-                      }
-                    >
-                      {v.availability ? 'Yes' : 'No'}
-                    </span>
-                  </p>
-                  {!v.availability && v.nextAvailableAt && (
-                    <p className="text-xs text-gray-500 mt-1 italic">
-                      Next available: {formatAvailableAt(v.nextAvailableAt)}
-                    </p>
-                  )}
-                </div>
-
-                            <button
-                                onClick={() => navigate(`/vehicles/${v.id}`)}
-                                disabled={!v.availability}
-                                className={v.availability ? 'vehicles-view-btn' : 'vehicles-view-btn vehicles-view-btn-disabled'}
+                        return (
+                            <div
+                                key={v.id}
+                                className="bg-white rounded-xl shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition"
                             >
-                                View Details
-                            </button>
-                        </div>
-                    ))}
+                                <VehicleMedia
+                                    vehicle={v}
+                                    alt={getVehicleDisplayName(v)}
+                                    className="h-40 w-full object-cover mb-4"
+                                />
+
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-semibold mb-2">
+                                        {v.car?.model || (v.bike ? 'Bike' : 'Scooter')}
+                                    </h3>
+
+                                    {(v.car?.fuelType === 'electric' || v.scooter?.fuelType === 'electric' || v.bike) ? (
+                                        <span className="inline-block bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2">
+                                            Zero emissions
+                                        </span>
+                                    ) : <span style={{opacity: "0"}}className="inline-block bg-red-100 text-red-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2">
+                                 
+                                    </span> // putting this here so alll content appears on the same line (otherwise inputs will misallign with other cards)
+                                    }
+
+                                    <p className="text-sm text-gray-600 mb-1">
+                                        Type: {v.car ? 'Car' : v.bike ? 'Bike' : 'Scooter'}
+                                    </p>
+
+                                    <p className="text-sm text-gray-600 mb-1">
+                                        Price:{' '}
+                                        <span className="font-medium">${v.costPerMinute}/min</span>
+                                    </p>
+
+
+                                </div>
+                                {v.availableSlots?.length > 0 && <p>Next available time</p>}
+
+                                {v.availableSlots?.length > 0 ? (
+                                    <select
+                                        className="mt-2 p-2 border rounded w-full text-sm"
+                                        style={{ marginBottom: 10 }}
+                                    >
+
+                                        {v.availableSlots.map((slot, index) => (
+                                            <option key={slot.start} value={index}>
+                                                {format(slot.start)} → {format(slot.end)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <p className="text-xs text-red-500 mt-2">No available times</p>
+                                )}
+                                <button
+                                    onClick={() => navigate(`/vehicles/${v.id}`)}
+                                    disabled={!v.isAvailable}
+                                    className={
+                                        v.isAvailable
+                                            ? 'vehicles-view-btn'
+                                            : 'vehicles-view-btn vehicles-view-btn-disabled'
+                                    }
+                                >
+                                    View Details
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
