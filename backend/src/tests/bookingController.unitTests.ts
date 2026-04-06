@@ -10,7 +10,13 @@ import { paymentCreator } from '../services/creators/paymentCreator.js';
 import * as fs from 'fs';
 import type { ControllerTest } from './controllers.unitTests.js';
 
-const mockTransport = { id: 'tid', availability: true, costPerMinute: 0.5 };
+const mockTransport = {
+    id: 'tid',
+    costPerMinute: 0.5,
+    availableFrom: new Date('2026-01-01'),
+    availableTo: new Date('2026-12-31'),
+    bookings: []
+};
 
 const bookingTests: ControllerTest[] = [
     {
@@ -108,7 +114,7 @@ const bookingTests: ControllerTest[] = [
         async run() {
             stub(prisma.booking, 'findUnique', async () => ({ id: 'b1', clientId: 'u1', status: 'RESERVED', transportId: 't1' }));
             stub(prisma.booking, 'update', async () => ({ status: 'ACTIVE' }));
-            stub(vehicleAvailabilityService, 'updateAvailability', async () => {});
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
 
             const req = mockRequest({ params: { id: 'b1' }, user: { id: 'u1' } });
             const res = mockResponse();
@@ -166,7 +172,7 @@ const bookingTests: ControllerTest[] = [
             stub(tripPricingService, 'calculate', () => ({ total: 10, strategy: 'BASE', adjustments: [] }));
             stub(prisma.booking, 'update', async () => ({ status: 'COMPLETED' }));
             stub(prisma.userProfile, 'update', async () => ({}));
-            stub(vehicleAvailabilityService, 'updateAvailability', async () => {});
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
 
             const req = mockRequest({ params: { id: 'b1' }, user: { id: 'u1' } });
             const res = mockResponse();
@@ -186,7 +192,7 @@ const bookingTests: ControllerTest[] = [
             stub(tripPricingService, 'calculate', () => ({ total: 10, strategy: 'BASE', adjustments: [] }));
             stub(prisma.booking, 'update', async () => ({ status: 'COMPLETED' }));
             stub(prisma.userProfile, 'update', async () => ({}));
-            stub(vehicleAvailabilityService, 'updateAvailability', async () => {});
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
 
             const req = mockRequest({ params: { id: 'b1' }, user: { id: 'u1' } });
             const res = mockResponse();
@@ -215,7 +221,7 @@ const bookingTests: ControllerTest[] = [
             res = mockResponse();
             await endRental(req, res);
             assert.equal(res.statusCode, 400);
-            
+
             stub(prisma.booking, 'findUnique', async () => { throw new Error('boom'); });
             res = mockResponse();
             await endRental(req, res);

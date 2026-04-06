@@ -37,8 +37,8 @@ const vehicleTests: ControllerTest[] = [
             await searchVehicles(req, res);
 
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData[0].nextAvailableAt, null);
-            assert.equal(res.jsonData[1].nextAvailableAt.toISOString(), new Date('2026-01-01').toISOString());
+            assert.equal(res.jsonData[0].availableSlots.length, 1);
+            assert.equal(res.jsonData[1].availableSlots.length, 1);
         }
     },
     {
@@ -69,7 +69,7 @@ const vehicleTests: ControllerTest[] = [
             const res = mockResponse();
             await getVehicleDetails(req, res);
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData.nextAvailableAt, null);
+            assert.ok(Array.isArray(res.jsonData.availableSlots));
         }
     },
     {
@@ -80,7 +80,7 @@ const vehicleTests: ControllerTest[] = [
             const res = mockResponse();
             await getVehicleDetails(req, res);
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData.nextAvailableAt.toISOString(), new Date('2026-02-02').toISOString());
+            assert.ok(res.jsonData.availableSlots.length > 0);
         }
     },
     {
