@@ -3,6 +3,7 @@ import { vehicleAvailabilityService } from '../services/vehicleAvailability/vehi
 import { transportCreator } from '../services/creators/transportCreator.js';
 
 import prisma from '../prisma.js';
+import { getAvailableSlots } from '../utils/availability.js';
 export const getProviders = async (req: Request, res: Response) => {
     try {
         const providers = await prisma.mobilityProvider.findMany();
@@ -67,18 +68,34 @@ export const createProvider = async (req: Request, res: Response) => {
 export const getManageableVehicles = async (req: Request, res: Response) => {
     try {
         const isAdmin = req.user?.role === 'ADMIN';
+
         const vehicles = await prisma.transport.findMany({
             where: isAdmin ? {} : { providerId: req.user!.id },
             include: {
                 car: true,
                 bike: true,
                 scooter: true,
-                provider: true
+                provider: true,
+                bookings: true
             },
             orderBy: { id: 'desc' }
         });
 
-        res.json(vehicles);
+        const enriched = vehicles.map(v => {
+            const slots = getAvailableSlots(
+                v.availableFrom,
+                v.availableTo,
+                v.bookings
+            );
+
+            return {
+                ...v,
+                availableSlots: slots,
+                isAvailable: slots.length > 0
+            };
+        });
+
+        res.json(enriched);
     } catch (error: any) {
         res.status(500).json({ error: 'Failed to fetch vehicles', details: error.message });
     }
@@ -86,7 +103,7 @@ export const getManageableVehicles = async (req: Request, res: Response) => {
 
 export const addVehicle = async (req: Request, res: Response) => {
     try {
-        const { providerId, costPerMinute, type, model, fuelType, imageUrl } = req.body;
+        const { providerId, costPerMinute, type, model, fuelType, imageUrl, availability, availableFrom, availableTo } = req.body;
         const isAdmin = req.user?.role === 'ADMIN';
         const targetProviderId = isAdmin ? providerId : req.user!.id;
 
@@ -113,11 +130,15 @@ export const addVehicle = async (req: Request, res: Response) => {
             type,
             model,
             fuelType,
-            imageUrl
+            imageUrl,
+            availableFrom: availableFrom,
+            availableTo: availableTo,
+            availability
         });
 
         res.status(201).json(transport);
     } catch (error: any) {
+        console.log(error)
         res.status(500).json({ error: 'Failed to add vehicle', details: error.message });
     }
 };
@@ -125,7 +146,16 @@ export const addVehicle = async (req: Request, res: Response) => {
 export const updateVehicle = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
-        const { costPerMinute, availability, model, fuelType, imageUrl } = req.body;
+
+        const {
+            costPerMinute,
+            model,
+            fuelType,
+            imageUrl,
+            availableFrom,
+            availableTo
+        } = req.body;
+
         const isAdmin = req.user?.role === 'ADMIN';
 
         const existingTransport = await prisma.transport.findUnique({
@@ -138,60 +168,103 @@ export const updateVehicle = async (req: Request, res: Response) => {
         }
 
         if (!isAdmin && existingTransport.providerId !== req.user!.id) {
-            return res.status(403).json({ error: 'You can only modify your own company vehicles' });
+            return res.status(403).json({
+                error: 'You can only modify your own company vehicles'
+            });
+        }
+
+        if (availableFrom !== undefined && availableTo !== undefined) {
+            const start = new Date(availableFrom);
+            const end = new Date(availableTo);
+
+            if (start >= end) {
+                return res.status(400).json({
+                    error: 'Available To must be after Available From'
+                });
+            }
         }
 
         const transportCar = (existingTransport as any).car;
         const transportBike = (existingTransport as any).bike;
         const transportScooter = (existingTransport as any).scooter;
 
-        const imageUrlUpdate = imageUrl !== undefined ? { imageUrl } : {};
+        const imageUrlUpdate =
+            imageUrl !== undefined ? { imageUrl } : {};
 
         const updatedTransport = await prisma.transport.update({
             where: { id },
             data: {
-                ...(costPerMinute !== undefined && { costPerMinute }),
-                ...(transportCar ? {
-                    car: {
-                        update: {
-                            ...(model !== undefined && { model }),
-                            ...(fuelType !== undefined && { fuelType }),
-                            ...imageUrlUpdate
-                        }
-                    }
-                } : {}),
-                ...(transportBike && Object.keys(imageUrlUpdate).length > 0 ? {
-                    bike: {
-                        update: {
-                            ...imageUrlUpdate
-                        }
-                    }
-                } : {}),
-                ...(transportScooter ? {
-                    scooter: {
-                        update: {
-                            ...(fuelType !== undefined && { fuelType }),
-                            ...imageUrlUpdate
-                        }
-                    }
-                } : {}),
+                ...(costPerMinute !== undefined && {
+                    costPerMinute
+                }),
+
+                ...(availableFrom !== undefined && {
+                    availableFrom: new Date(availableFrom)
+                }),
+                ...(availableTo !== undefined && {
+                    availableTo: new Date(availableTo)
+                }),
+
+                ...(transportCar
+                    ? {
+                          car: {
+                              update: {
+                                  ...(model !== undefined && { model }),
+                                  ...(fuelType !== undefined && { fuelType }),
+                                  ...imageUrlUpdate
+                              }
+                          }
+                      }
+                    : {}),
+
+                ...(transportBike &&
+                Object.keys(imageUrlUpdate).length > 0
+                    ? {
+                          bike: {
+                              update: {
+                                  ...imageUrlUpdate
+                              }
+                          }
+                      }
+                    : {}),
+
+                ...(transportScooter
+                    ? {
+                          scooter: {
+                              update: {
+                                  ...(fuelType !== undefined && { fuelType }),
+                                  ...imageUrlUpdate
+                              }
+                          }
+                      }
+                    : {})
             },
-            include: { car: true, bike: true, scooter: true, provider: true }
+            include: {
+                car: true,
+                bike: true,
+                scooter: true,
+                provider: true,
+                bookings: true 
+            }
         });
 
-        const availabilityManagedTransport = availability === undefined
-            ? updatedTransport
-            : await vehicleAvailabilityService.updateAvailability({
-                transportId: id,
-                availability,
-                source: 'PROVIDER_DASHBOARD',
-                ...(req.user?.id ? { actorUserId: req.user.id } : {}),
-                reason: 'Provider availability update'
-            });
+        const availableSlots = getAvailableSlots(
+            updatedTransport.availableFrom,
+            updatedTransport.availableTo,
+            updatedTransport.bookings
+        );
 
-        res.json(availabilityManagedTransport);
+        res.json({
+            ...updatedTransport,
+            availableSlots,
+            isAvailable: availableSlots.length > 0
+        });
+
     } catch (error: any) {
-        res.status(500).json({ error: 'Failed to update vehicle', details: error.message });
+        res.status(500).json({
+            error: 'Failed to update vehicle',
+            details: error.message
+        });
     }
 };
 
@@ -213,7 +286,6 @@ export const removeVehicle = async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'You can only delete your own company vehicles' });
         }
 
-        // Check for active bookings
         const activeBookings = await prisma.booking.findFirst({
             where: {
                 transportId: id,

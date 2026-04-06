@@ -2,23 +2,20 @@ import type { Request, Response } from 'express';
 import { vehicleRecommendationService } from '../services/recommendations/vehicleRecommendationService.js';
 
 import prisma from '../prisma.js';
+import { getAvailableSlots } from '../utils/availability.js';
 export const searchVehicles = async (req: Request, res: Response) => {
     try {
-        const { type, maxPrice, availability } = req.query;
+        const { type, maxPrice } = req.query;
 
         let whereClause: any = {};
-        if (availability !== undefined) {
-            whereClause.availability = availability === 'true';
-        }
+
         if (maxPrice) {
             whereClause.costPerMinute = { lte: Number(maxPrice) };
         }
 
-        if (type) {
-            if (typeof type === 'string' && ['CAR', 'BIKE', 'SCOOTER'].includes(type.toUpperCase())) {
-                const t = type.toUpperCase();
-                whereClause[t.toLowerCase()] = { isNot: null };
-            }
+        if (type && typeof type === 'string' && ['CAR', 'BIKE', 'SCOOTER'].includes(type.toUpperCase())) {
+            const t = type.toUpperCase();
+            whereClause[t.toLowerCase()] = { isNot: null };
         }
 
         const vehicles = await prisma.transport.findMany({
@@ -27,26 +24,44 @@ export const searchVehicles = async (req: Request, res: Response) => {
                 car: true,
                 bike: true,
                 scooter: true,
-                provider: true
+                provider: true,
+                bookings: true   
             }
         });
 
-        res.json(vehicles);
+        const enriched = vehicles.map(v => {
+            const slots = getAvailableSlots(
+                v.availableFrom,
+                v.availableTo,
+                v.bookings
+            );
+
+            return {
+                ...v,
+                availableSlots: slots,
+                isAvailable: slots.length > 0
+            };
+        });
+
+        res.json(enriched);
     } catch (error: any) {
         res.status(500).json({ error: 'Failed to fetch vehicles', details: error.message });
     }
 };
 
+
 export const getVehicleDetails = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
+
         const vehicle = await prisma.transport.findUnique({
             where: { id },
             include: {
                 car: true,
                 bike: true,
                 scooter: true,
-                provider: true
+                provider: true,
+                bookings: true 
             }
         });
 
@@ -54,9 +69,23 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
 
-        res.json(vehicle);
+        const availableSlots = getAvailableSlots(
+            vehicle.availableFrom,
+            vehicle.availableTo,
+            vehicle.bookings
+        );
+
+        res.json({
+            ...vehicle,
+            availableSlots,
+            isAvailable: availableSlots.length > 0
+        });
+
     } catch (error: any) {
-        res.status(500).json({ error: 'Failed to fetch vehicle details', details: error.message });
+        res.status(500).json({
+            error: 'Failed to fetch vehicle details',
+            details: error.message
+        });
     }
 };
 
@@ -67,12 +96,27 @@ export const getRecommendedVehicles = async (req: Request, res: Response) => {
                 car: true,
                 bike: true,
                 scooter: true,
-                provider: true
+                provider: true,
+                bookings: true 
             }
         });
 
+        const enriched = vehicles.map(v => {
+            const slots = getAvailableSlots(
+                v.availableFrom,
+                v.availableTo,
+                v.bookings
+            );
+
+            return {
+                ...v,
+                availableSlots: slots,
+                isAvailable: slots.length > 0
+            };
+        });
+
         const recommendation = vehicleRecommendationService.recommend({
-            vehicles,
+            vehicles: enriched,
             ...(typeof req.query.type === 'string' ? { requestedType: req.query.type } : {}),
             ...(req.user?.preferredMobility !== undefined ? { preferredMobility: req.user.preferredMobility } : {}),
             ...(req.user?.city !== undefined ? { city: req.user.city } : {})

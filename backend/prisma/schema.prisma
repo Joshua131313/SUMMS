@@ -44,6 +44,8 @@ model Transport {
   providerId    String           @db.Uuid
   costPerMinute Decimal          @db.Decimal(10, 2)
   availability  Boolean
+  availableFrom DateTime
+  availableTo   DateTime
   bike          Bike?
   bookings      Booking[]
   car           Car?
