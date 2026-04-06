@@ -65,16 +65,6 @@ const VehicleDetailPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const formatAvailableAt = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleString([], { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-    };
-
     const [reservation, setReservation] = useState(() => {
         const start = new Date();
         const end = new Date(start.getTime() + 3600000);

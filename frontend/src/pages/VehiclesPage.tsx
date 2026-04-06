@@ -20,35 +20,6 @@ const format = (date: string) =>
         minute: '2-digit'
     });
 
-const getAvailabilityDisplay = (v: Vehicle) => {
-    if (!v.availableSlots || v.availableSlots.length === 0) {
-        return {
-            text: ['Fully booked'],
-            color: 'text-red-500'
-        };
-    }
-
-    const now = new Date();
-
-    const ranges: string[] = [];
-
-    for (const slot of v.availableSlots) {
-        const start = new Date(slot.start);
-        const end = new Date(slot.end);
-
-        if (start <= now && end >= now) {
-            ranges.push(`Available now until ${format(slot.end)}`);
-        }
-        else if (start > now) {
-            ranges.push(`Available from ${format(slot.start)} to ${format(slot.end)}`);
-        }
-    }
-
-    return {
-        text: ranges,
-        color: 'text-green-600'
-    };
-};
 
 const VehiclesPage = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -56,16 +27,6 @@ const VehiclesPage = () => {
     const [typeFilter, setTypeFilter] = useState('');
     const [priceFilter, setPriceFilter] = useState('5.00');
     const navigate = useNavigate();
-
-    const formatAvailableAt = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleString([], { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-    };
 
     const minPrice = 0.05;
     const maxPrice = 5.0;
