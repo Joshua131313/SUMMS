@@ -292,9 +292,7 @@ export const payRental = async (req: Request, res: Response) => {
         const [yearRaw, monthRaw] = expiryRaw.split('-');
         const year = Number(yearRaw);
         const month = Number(monthRaw);
-        if (!Number.isFinite(year) || !Number.isFinite(month)) {
-            return res.status(400).json({ error: 'Invalid expiration date format. Use YYYY-MM' });
-        }
+
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;

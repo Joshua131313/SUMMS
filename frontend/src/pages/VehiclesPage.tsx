@@ -57,6 +57,16 @@ const VehiclesPage = () => {
     const [priceFilter, setPriceFilter] = useState('5.00');
     const navigate = useNavigate();
 
+    const formatAvailableAt = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleString([], { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    };
+
     const minPrice = 0.05;
     const maxPrice = 5.0;
     const priceValue = Number(priceFilter);
