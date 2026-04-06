@@ -251,6 +251,15 @@ const ProviderDashboard = () => {
         setEditVehicle({ costPerMinute: 0, availability: true, model: '', imageUrl: '', availableFrom: formatDate(now), availableTo: formatDate(tomorrow) });
     };
 
+
+    type UpdateVehiclePayload = {
+        costPerMinute?: number;
+        imageUrl?: string;
+        availableFrom?: Date;
+        availableTo?: Date;
+        model?: string;
+    };
+
     const handleUpdate = async (id: string, hasCarModel: boolean) => {
         try {
             if (new Date(editVehicle.availableFrom) >= new Date(editVehicle.availableTo)) {
@@ -258,7 +267,7 @@ const ProviderDashboard = () => {
                 return;
             }
 
-            const payload: any = {
+            const payload: UpdateVehiclePayload = {
                 costPerMinute: editVehicle.costPerMinute,
                 imageUrl: editVehicle.imageUrl,
                 availableFrom: new Date(editVehicle.availableFrom),
@@ -268,6 +277,7 @@ const ProviderDashboard = () => {
             if (hasCarModel) {
                 payload.model = editVehicle.model;
             }
+
             await api.put(`/provider/vehicles/${id}`, payload);
 
             cancelEdit();

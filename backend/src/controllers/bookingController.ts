@@ -49,12 +49,12 @@ export const reserveVehicle = async (req: Request, res: Response) => {
         const transport = await prisma.transport.findUnique({
             where: { id: transportId },
             include: {
-                bookings: true 
+                bookings: true
             }
         });
 
         if (!transport) {
-            return res.status(404).json({ error: 'Vehicle not found' });
+            return res.status(400).json({ error: 'Vehicle is not available' });
         }
 
         const start = new Date(startTime);
@@ -118,7 +118,16 @@ export const reserveVehicle = async (req: Request, res: Response) => {
         res.status(201).json(booking);
 
     } catch (error: any) {
-        fs.writeFileSync('c:\\SUMMS\\error.log', error.message + '\n' + error.stack);
+        try {
+            const dir = 'c:\\SUMMS';
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir);
+            }
+            fs.writeFileSync(`${dir}\\error.log`, error.message + '\n' + error.stack);
+        } catch {
+
+        }
+
         res.status(500).json({
             error: 'Failed to reserve vehicle',
             details: error.message
@@ -215,10 +224,10 @@ export const endRental = async (req: Request, res: Response) => {
         const distanceKm = (durationMinutes / 60) * AVERAGE_SPEED_KMH;
 
         let emissionFactorGPerKm = 0;
-        if(booking.transport.car){
+        if (booking.transport.car) {
             emissionFactorGPerKm = booking.transport.car.emissionFactorGPerKm;
         }
-        else if(booking.transport.scooter){
+        else if (booking.transport.scooter) {
             emissionFactorGPerKm = booking.transport.scooter.emissionFactorGPerKm;
         }
 
@@ -397,7 +406,7 @@ export const getCo2Summary = async (req: Request, res: Response) => {
         const summary = bookings.reduce((acc: Record<string, number>, booking: typeof bookings[0]) => {
             const type = booking.transport.car ? 'car'
                 : booking.transport.scooter ? 'scooter'
-                : 'bike';
+                    : 'bike';
             acc[type] = (acc[type] || 0) + (booking.co2Kg || 0);
             acc.total = (acc.total || 0) + (booking.co2Kg || 0);
             acc.trips = (acc.trips || 0) + 1;

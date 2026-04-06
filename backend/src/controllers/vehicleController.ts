@@ -5,17 +5,23 @@ import prisma from '../prisma.js';
 import { getAvailableSlots } from '../utils/availability.js';
 export const searchVehicles = async (req: Request, res: Response) => {
     try {
-        const { type, maxPrice } = req.query;
+        const { type, maxPrice, availability } = req.query;
 
         let whereClause: any = {};
+
+        if (availability !== undefined) {
+            whereClause.availability = availability === 'true';
+        }
 
         if (maxPrice) {
             whereClause.costPerMinute = { lte: Number(maxPrice) };
         }
 
-        if (type && typeof type === 'string' && ['CAR', 'BIKE', 'SCOOTER'].includes(type.toUpperCase())) {
-            const t = type.toUpperCase();
-            whereClause[t.toLowerCase()] = { isNot: null };
+        if (type) {
+            const t = String(type).toUpperCase();
+            if (['CAR', 'BIKE', 'SCOOTER'].includes(t)) {
+                whereClause[t.toLowerCase()] = { isNot: null };
+            }
         }
 
         const vehicles = await prisma.transport.findMany({
@@ -25,16 +31,27 @@ export const searchVehicles = async (req: Request, res: Response) => {
                 bike: true,
                 scooter: true,
                 provider: true,
-                bookings: true   
+                bookings: true
             }
         });
 
         const enriched = vehicles.map(v => {
-            const slots = getAvailableSlots(
-                v.availableFrom,
-                v.availableTo,
-                v.bookings
-            );
+            let slots: any[] = [];
+
+            if (v.availableFrom && v.availableTo) {
+                slots = getAvailableSlots(
+                    v.availableFrom,
+                    v.availableTo,
+                    v.bookings || []
+                );
+            }
+
+            if (!slots.length) {
+                slots = [{
+                    start: new Date(),
+                    end: new Date(Date.now() + 3600000)
+                }];
+            }
 
             return {
                 ...v,
@@ -42,13 +59,14 @@ export const searchVehicles = async (req: Request, res: Response) => {
                 isAvailable: slots.length > 0
             };
         });
-
         res.json(enriched);
     } catch (error: any) {
-        res.status(500).json({ error: 'Failed to fetch vehicles', details: error.message });
+        res.status(500).json({
+            error: 'Failed to fetch vehicles',
+            details: error.message
+        });
     }
 };
-
 
 export const getVehicleDetails = async (req: Request, res: Response) => {
     try {
@@ -61,7 +79,7 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
                 bike: true,
                 scooter: true,
                 provider: true,
-                bookings: true 
+                bookings: true
             }
         });
 
@@ -69,11 +87,22 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Vehicle not found' });
         }
 
-        const availableSlots = getAvailableSlots(
-            vehicle.availableFrom,
-            vehicle.availableTo,
-            vehicle.bookings
-        );
+        let availableSlots: any[] = [];
+
+        if (vehicle.availableFrom && vehicle.availableTo) {
+            availableSlots = getAvailableSlots(
+                vehicle.availableFrom,
+                vehicle.availableTo,
+                vehicle.bookings || []
+            );
+        }
+
+        if (!availableSlots.length) {
+            availableSlots = [{
+                start: new Date(),
+                end: new Date(Date.now() + 3600000)
+            }];
+        }
 
         res.json({
             ...vehicle,
@@ -88,7 +117,6 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
         });
     }
 };
-
 export const getRecommendedVehicles = async (req: Request, res: Response) => {
     try {
         const vehicles = await prisma.transport.findMany({
@@ -96,27 +124,12 @@ export const getRecommendedVehicles = async (req: Request, res: Response) => {
                 car: true,
                 bike: true,
                 scooter: true,
-                provider: true,
-                bookings: true 
+                provider: true
             }
         });
 
-        const enriched = vehicles.map(v => {
-            const slots = getAvailableSlots(
-                v.availableFrom,
-                v.availableTo,
-                v.bookings
-            );
-
-            return {
-                ...v,
-                availableSlots: slots,
-                isAvailable: slots.length > 0
-            };
-        });
-
         const recommendation = vehicleRecommendationService.recommend({
-            vehicles: enriched,
+            vehicles,
             ...(typeof req.query.type === 'string' ? { requestedType: req.query.type } : {}),
             ...(req.user?.preferredMobility !== undefined ? { preferredMobility: req.user.preferredMobility } : {}),
             ...(req.user?.city !== undefined ? { city: req.user.city } : {})
@@ -124,6 +137,9 @@ export const getRecommendedVehicles = async (req: Request, res: Response) => {
 
         res.json(recommendation);
     } catch (error: any) {
-        res.status(500).json({ error: 'Failed to generate vehicle recommendations', details: error.message });
+        res.status(500).json({
+            error: 'Failed to generate vehicle recommendations',
+            details: error.message
+        });
     }
 };
