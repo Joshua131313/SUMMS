@@ -136,6 +136,80 @@ const vehicleTests: ControllerTest[] = [
             await getRecommendedVehicles(req, res);
             assert.equal(res.statusCode, 500);
         }
+    },
+    {
+        name: 'searchVehicles - uses getAvailableSlots when dates exist',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: []
+                }
+            ]);
+
+            const req = mockRequest();
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.ok(res.jsonData[0].availableSlots.length >= 0);
+        }
+    },
+    {
+        name: 'searchVehicles - ignores invalid type filter',
+        async run() {
+            let givenWhere: any;
+            stub(prisma.transport, 'findMany', async (opts: any) => {
+                givenWhere = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ query: { type: 'plane' } });
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(givenWhere.car, undefined);
+            assert.equal(givenWhere.bike, undefined);
+        }
+    },
+    {
+        name: 'searchVehicles - availability false filter',
+        async run() {
+            let givenWhere: any;
+            stub(prisma.transport, 'findMany', async (opts: any) => {
+                givenWhere = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ query: { availability: 'false' } });
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(givenWhere.availability, false);
+        }
+    },
+    {
+        name: 'searchVehicles - availability false filter',
+        async run() {
+            let givenWhere: any;
+            stub(prisma.transport, 'findMany', async (opts: any) => {
+                givenWhere = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ query: { availability: 'false' } });
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(givenWhere.availability, false);
+        }
     }
 ];
 

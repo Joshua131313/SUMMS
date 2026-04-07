@@ -363,6 +363,155 @@ const bookingTests: ControllerTest[] = [
             await getCo2Summary(mockRequest(), res);
             assert.equal(res.statusCode, 500);
         }
+    },
+    {
+        name: 'reserveVehicle - invalid time range',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => mockTransport);
+
+            const req = mockRequest({
+                body: {
+                    transportId: 'tid',
+                    startTime: '2026-06-02',
+                    endTime: '2026-06-01'
+                },
+                user: { id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await reserveVehicle(req, res);
+
+            assert.equal(res.statusCode, 400);
+            assert.match(res.jsonData.error, /Invalid time range/);
+        }
+    },
+    {
+        name: 'reserveVehicle - invalid slot selection',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                ...mockTransport,
+                availableFrom: new Date('2026-01-01'),
+                availableTo: new Date('2026-01-02'),
+                bookings: []
+            }));
+
+            const req = mockRequest({
+                body: {
+                    transportId: 'tid',
+                    startTime: '2026-02-01',
+                    endTime: '2026-02-02'
+                },
+                user: { id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await reserveVehicle(req, res);
+
+            assert.equal(res.statusCode, 400);
+            assert.match(res.jsonData.error, /not within available slots/);
+        }
+    },
+    {
+        name: 'startRental - admin can start others booking',
+        async run() {
+            stub(prisma.booking, 'findUnique', async () => ({
+                id: 'b1',
+                clientId: 'other',
+                status: 'RESERVED',
+                transportId: 't1'
+            }));
+
+            stub(prisma.booking, 'update', async () => ({ status: 'ACTIVE' }));
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
+
+            const req = mockRequest({
+                params: { id: 'b1' },
+                user: { id: 'admin', role: 'ADMIN' }
+            });
+
+            const res = mockResponse();
+
+            await startRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+        }
+    },
+    {
+        name: 'endRental - bike emission defaults to 0',
+        async run() {
+            const t0 = new Date(Date.now() - 600000);
+
+            stub(prisma.booking, 'findUnique', async () => ({
+                id: 'b1',
+                clientId: 'u1',
+                status: 'ACTIVE',
+                transportId: 't1',
+                startTime: t0,
+                client: {},
+                transport: { bike: true }
+            }));
+
+            stub(tripPricingService, 'calculate', () => ({
+                total: 10,
+                strategy: 'BASE',
+                adjustments: []
+            }));
+
+            stub(prisma.booking, 'update', async () => ({ status: 'COMPLETED' }));
+            stub(prisma.userProfile, 'update', async () => ({}));
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
+
+            const req = mockRequest({ params: { id: 'b1' }, user: { id: 'u1' } });
+            const res = mockResponse();
+
+            await endRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+        }
+    },
+    {
+        name: 'payRental - expired card rejected',
+        async run() {
+            const pastYear = new Date().getFullYear() - 1;
+
+            const req = mockRequest({
+                body: {
+                    paymentMethod: 'CARD',
+                    cardNumber: '1111222233334444',
+                    cardFirstName: 'A',
+                    cardLastName: 'B',
+                    cardVerificationCode: '123',
+                    expirationDate: `${pastYear}-01`
+                },
+                user: { id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await payRental(req, res);
+
+            assert.equal(res.statusCode, 400);
+        }
+    },
+    {
+        name: 'getCo2Summary - normal user filter applied',
+        async run() {
+            let passedFilter: any;
+
+            stub(prisma.booking, 'findMany', async (opts: any) => {
+                passedFilter = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ user: { id: 'u1', role: 'USER' } });
+            const res = mockResponse();
+
+            await getCo2Summary(req, res);
+
+            assert.equal(passedFilter.clientId, 'u1');
+        }
     }
 ];
 
