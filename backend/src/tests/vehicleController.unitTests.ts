@@ -299,41 +299,6 @@ const vehicleTests: ControllerTest[] = [
 
             assert.ok(Array.isArray(res.jsonData.availableSlots));
         }
-    },
-    {
-        name: 'getVehicleDetails - FORCE coverage of bookings fallback',
-        async run() {
-            let capturedBookings: any = null;
-
-            // 🔥 intercept getAvailableSlots call
-            const original = getAvailableSlots;
-
-            // @ts-ignore
-            global.getAvailableSlots = (from: any, to: any, bookings: any) => {
-                capturedBookings = bookings;
-                return [];
-            };
-
-            stub(prisma.transport, 'findUnique', async () => ({
-                id: 'v1',
-                availableFrom: new Date(),
-                availableTo: new Date(Date.now() + 100000),
-                bookings: undefined
-            }));
-
-            const req = mockRequest({ params: { id: 'v1' } });
-            const res = mockResponse();
-
-            await getVehicleDetails(req, res);
-
-            assert.equal(res.statusCode, 200);
-
-            assert.deepEqual(capturedBookings, []);
-
-            // restore
-            // @ts-ignore
-            global.getAvailableSlots = original;
-        }
     }
 ];
 

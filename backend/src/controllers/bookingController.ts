@@ -7,6 +7,12 @@ import { bookingCreator } from '../services/creators/bookingCreator.js';
 import { paymentCreator } from '../services/creators/paymentCreator.js';
 import { accessLogCreator } from '../services/creators/accessLogCreator.js';
 
+export const fsWrapper = {
+    existsSync: fs.existsSync,
+    mkdirSync: fs.mkdirSync,
+    writeFileSync: fs.writeFileSync
+};
+
 import prisma from '../prisma.js';
 import { getAvailableSlots } from '../utils/availability.js';
 export const getMyBookings = async (req: Request, res: Response) => {
@@ -120,10 +126,10 @@ export const reserveVehicle = async (req: Request, res: Response) => {
     } catch (error: any) {
         try {
             const dir = 'c:\\SUMMS';
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir);
+            if (!fsWrapper.existsSync(dir)) {
+                fsWrapper.mkdirSync(dir);
             }
-            fs.writeFileSync(`${dir}\\error.log`, error.message + '\n' + error.stack);
+            fsWrapper.writeFileSync(`${dir}\\error.log`, error.message + '\n' + error.stack);
         } catch {
 
         }

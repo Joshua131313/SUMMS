@@ -8,6 +8,7 @@ import { vehicleAvailabilityService } from '../services/vehicleAvailability/vehi
 import { tripPricingService } from '../services/pricing/tripPricingService.js';
 import { paymentCreator } from '../services/creators/paymentCreator.js';
 import * as fs from 'fs';
+import { fsWrapper } from '../controllers/bookingController.js';
 import type { ControllerTest } from './controllers.unitTests.js';
 
 const mockTransport = {
@@ -520,7 +521,7 @@ const bookingTests: ControllerTest[] = [
                 throw new Error('DB FAIL');
             });
 
-            stub(fs, 'existsSync', () => {
+            stub(fsWrapper, 'existsSync', () => {
                 throw new Error('FS FAIL');
             });
 
