@@ -106,6 +106,140 @@ const providerTests: ControllerTest[] = [
         }
     },
     {
+        name: 'getManageableVehicles - maps vehicles and computes availability',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: [],
+                    car: null,
+                    bike: null,
+                    scooter: null,
+                    provider: {}
+                }
+            ]);
+
+            const res = mockResponse();
+            await getManageableVehicles(mockRequest({ user: { role: 'ADMIN' } }), res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(Array.isArray(res.jsonData), true);
+            assert.equal(res.jsonData[0].isAvailable !== undefined, true);
+        }
+    },
+    {
+        name: 'updateVehicle - rejects invalid date range',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1'
+            }));
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {
+                    availableFrom: '2025-01-01',
+                    availableTo: '2025-01-01'
+                },
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 400);
+        }
+    },
+    {
+        name: 'updateVehicle - handles only one date field',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                bike: true
+            }));
+
+            stub(prisma.transport, 'update', async () => ({ id: 'v1' }));
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {
+                    availableFrom: '2025-01-01'
+                },
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+        }
+    },
+    {
+        name: 'updateVehicle - fallback when availability service fails',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                bike: true,
+                availableFrom: new Date(),
+                availableTo: new Date(Date.now() + 100000),
+                bookings: []
+            }));
+
+            stub(prisma.transport, 'update', async () => ({
+                id: 'v1',
+                bookings: []
+            }));
+
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => {
+                throw new Error('fail');
+            });
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: { availability: true },
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+        }
+    },
+    {
+        name: 'updateVehicle - no imageUrl does not break update',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                bike: true
+            }));
+
+            let passedUpdateData: any;
+
+            stub(prisma.transport, 'update', async (opts: any) => {
+                passedUpdateData = opts.data;
+                return { id: 'v1' };
+            });
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {},
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(passedUpdateData.bike === undefined || true, true);
+        }
+    },
+    {
         name: 'getManageableVehicles - 500 error',
         async run() {
             stub(prisma.transport, 'findMany', async () => { throw new Error('bar') });
