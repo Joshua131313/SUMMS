@@ -438,6 +438,195 @@ const providerTests: ControllerTest[] = [
             await removeVehicle(req, res);
             assert.equal(res.statusCode, 500);
         }
+    },
+    {
+        name: 'getManageableVehicles - executes map and computes slots',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: [],
+                    car: null,
+                    bike: null,
+                    scooter: null,
+                    provider: {}
+                }
+            ]);
+
+            const req = mockRequest({ user: { role: 'ADMIN' } });
+            const res = mockResponse();
+
+            await getManageableVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.equal(res.jsonData.length, 1);
+
+            assert.ok(Array.isArray(res.jsonData[0].availableSlots));
+
+            assert.equal(typeof res.jsonData[0].isAvailable, 'boolean');
+        }
+    },
+    {
+        name: 'updateVehicle - updates availableTo field',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                bike: true
+            }));
+
+            let passedData: any;
+
+            stub(prisma.transport, 'update', async (opts: any) => {
+                passedData = opts.data;
+                return { id: 'v1' };
+            });
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {
+                    availableTo: '2026-01-01'
+                },
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(passedData.availableTo instanceof Date);
+        }
+    },
+    {
+        name: 'updateVehicle - skips availableTo when undefined',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                bike: true
+            }));
+
+            let passedData: any;
+
+            stub(prisma.transport, 'update', async (opts: any) => {
+                passedData = opts.data;
+                return { id: 'v1' };
+            });
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {},
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.equal(passedData.availableTo, undefined);
+        }
+    },
+    {
+        name: 'updateVehicle - updates model and fuelType',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                car: true
+            }));
+
+            let passedData: any;
+
+            stub(prisma.transport, 'update', async (opts: any) => {
+                passedData = opts.data;
+                return { id: 'v1' };
+            });
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {
+                    model: 'Tesla',
+                    fuelType: 'ELECTRIC'
+                },
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.equal(passedData.car.update.model, 'Tesla');
+            assert.equal(passedData.car.update.fuelType, 'ELECTRIC');
+        }
+    },
+    {
+        name: 'updateVehicle - skips model and fuelType when undefined',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                car: true
+            }));
+
+            let passedData: any;
+
+            stub(prisma.transport, 'update', async (opts: any) => {
+                passedData = opts.data;
+                return { id: 'v1' };
+            });
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {},
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.equal(passedData.car.update.model, undefined);
+            assert.equal(passedData.car.update.fuelType, undefined);
+        }
+    },
+    {
+        name: 'updateVehicle - fuelType undefined branch covered',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                providerId: 'p1',
+                car: true
+            }));
+
+            let passedData: any;
+
+            stub(prisma.transport, 'update', async (opts: any) => {
+                passedData = opts.data;
+                return { id: 'v1' };
+            });
+
+            const req = mockRequest({
+                params: { id: 'v1' },
+                body: {
+                    model: 'Tesla'
+                },
+                user: { role: 'ADMIN', id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await updateVehicle(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(!('fuelType' in passedData.car.update));
+        }
     }
 ];
 
