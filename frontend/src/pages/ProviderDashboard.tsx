@@ -5,19 +5,24 @@ import { useAuth } from '../features/auth/context/useAuth';
 import { supabase } from '../lib/supabase';
 import { getErrorMessage } from '../lib/apiError';
 import type { VehicleWithMedia } from '../components/vehicles/vehicleMedia.shared';
+import { getAvailability } from '../util/availability';
 
 type ProviderVehicle = VehicleWithMedia & {
     availability: boolean;
     costPerMinute: number;
     id: string;
     provider?: ProviderOption | null;
+    availableFrom: string;
+    availableTo: string;
 };
 
 type VehicleFormState = {
-    availability: boolean;
     costPerMinute: number;
-    imageUrl: string;
     model: string;
+    imageUrl: string;
+    availableFrom: string;
+    availableTo: string;
+    availability: boolean;
 };
 
 type NewVehicleFormState = {
@@ -27,6 +32,8 @@ type NewVehicleFormState = {
     model: string;
     providerId: string;
     type: 'BIKE' | 'CAR' | 'SCOOTER';
+    availableFrom: string;
+    availableTo: string;
 };
 
 type ProviderOption = {
@@ -43,11 +50,18 @@ const ProviderDashboard = () => {
     const [error, setError] = useState('');
     const [providerCompanyName, setProviderCompanyName] = useState('');
     const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+    const now = new Date();
+    const tomorrow = new Date(Date.now() + 86400000);
+
+    const formatDate = (d: Date) => d.toISOString().slice(0, 16);
+
     const [editVehicle, setEditVehicle] = useState<VehicleFormState>({
         costPerMinute: 0,
-        availability: true,
         model: '',
-        imageUrl: ''
+        imageUrl: '',
+        availableFrom: formatDate(now),
+        availableTo: formatDate(tomorrow),
+        availability: true
     });
 
     const [newVehicle, setNewVehicle] = useState<NewVehicleFormState>({
@@ -56,7 +70,9 @@ const ProviderDashboard = () => {
         type: 'CAR',
         model: '',
         fuelType: 'petrol',
-        imageUrl: ''
+        imageUrl: '',
+        availableFrom: formatDate(now),
+        availableTo: formatDate(tomorrow)
     });
     const [co2Summary, setCo2Summary] = useState<Record<string, number>>({});
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -130,30 +146,41 @@ const ProviderDashboard = () => {
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
+
         if (!newVehicle.providerId) {
             alert('Select a valid mobility provider company before adding a vehicle.');
             return;
         }
+
+        if (new Date(newVehicle.availableFrom) >= new Date(newVehicle.availableTo)) {
+            alert("Available To must be after Available From");
+            return;
+        }
+
         try {
-            const trimmedImageUrl = newVehicle.imageUrl.trim();
-            const payload = trimmedImageUrl
-                ? { ...newVehicle, imageUrl: trimmedImageUrl }
-                : {
-                    providerId: newVehicle.providerId,
-                    costPerMinute: newVehicle.costPerMinute,
-                    type: newVehicle.type,
-                    model: newVehicle.model,
-                    fuelType: newVehicle.fuelType
-                };
+            const payload = {
+                ...newVehicle,
+                availableFrom: new Date(newVehicle.availableFrom),
+                availableTo: new Date(newVehicle.availableTo),
+                imageUrl: newVehicle.imageUrl.trim() || undefined
+            };
 
             await api.post('/provider/vehicles', payload);
-            setNewVehicle({ ...newVehicle, costPerMinute: 0, model: '', imageUrl: '' });
+
+            setNewVehicle({
+                ...newVehicle,
+                costPerMinute: 0,
+                model: '',
+                imageUrl: '',
+                availableFrom: formatDate(new Date()),
+                availableTo: formatDate(new Date(Date.now() + 86400000))
+            });
+
             await fetchData();
         } catch (e: unknown) {
             alert(getErrorMessage(e, 'Unable to add the vehicle.'));
         }
     };
-
     const handleDelete = async (id: string) => {
         if (!window.confirm('Remove this vehicle?')) return;
         try {
@@ -204,30 +231,47 @@ const ProviderDashboard = () => {
 
     const startEdit = (vehicle: ProviderVehicle) => {
         setEditingVehicleId(vehicle.id);
+
         setEditVehicle({
             costPerMinute: vehicle.costPerMinute,
-            availability: vehicle.availability,
             model: vehicle.car?.model || '',
-            imageUrl: vehicle.car?.imageUrl || vehicle.bike?.imageUrl || vehicle.scooter?.imageUrl || ''
+            imageUrl: vehicle.car?.imageUrl || vehicle.bike?.imageUrl || vehicle.scooter?.imageUrl || '',
+            availableFrom: vehicle.availableFrom
+                ? new Date(vehicle.availableFrom).toISOString().slice(0, 16)
+                : formatDate(new Date()),
+            availableTo: vehicle.availableTo
+                ? new Date(vehicle.availableTo).toISOString().slice(0, 16)
+                : formatDate(new Date(Date.now() + 86400000)),
+            availability: vehicle.availability
         });
     };
 
     const cancelEdit = () => {
         setEditingVehicleId(null);
-        setEditVehicle({ costPerMinute: 0, availability: true, model: '', imageUrl: '' });
+        setEditVehicle({ costPerMinute: 0, availability: true, model: '', imageUrl: '', availableFrom: formatDate(now), availableTo: formatDate(tomorrow) });
+    };
+
+
+    type UpdateVehiclePayload = {
+        costPerMinute?: number;
+        imageUrl?: string;
+        availableFrom?: Date;
+        availableTo?: Date;
+        model?: string;
     };
 
     const handleUpdate = async (id: string, hasCarModel: boolean) => {
         try {
-            const payload: {
-                availability: boolean;
-                costPerMinute: number;
-                imageUrl: string;
-                model?: string;
-            } = {
+            if (new Date(editVehicle.availableFrom) >= new Date(editVehicle.availableTo)) {
+                alert("Available To must be after Available From");
+                return;
+            }
+
+            const payload: UpdateVehiclePayload = {
                 costPerMinute: editVehicle.costPerMinute,
-                availability: editVehicle.availability,
-                imageUrl: editVehicle.imageUrl
+                imageUrl: editVehicle.imageUrl,
+                availableFrom: new Date(editVehicle.availableFrom),
+                availableTo: new Date(editVehicle.availableTo)
             };
 
             if (hasCarModel) {
@@ -235,6 +279,7 @@ const ProviderDashboard = () => {
             }
 
             await api.put(`/provider/vehicles/${id}`, payload);
+
             cancelEdit();
             await fetchData();
         } catch (e: unknown) {
@@ -247,7 +292,7 @@ const ProviderDashboard = () => {
     return (
         <div className="provider-dashboard-container">
             <h1 className="text-5xl font-bold mb-12">Provider Dashboard</h1>
-            
+
             {error && <p className="error">{error}</p>}
 
             <div className="card analytics-co2-card provider-co2-card">
@@ -335,113 +380,225 @@ const ProviderDashboard = () => {
                         </div>
                     )}
                     {newVehicle.type === 'CAR' && (
+                        <div className="input-group">
+                            <label>Fuel Type</label>
+                            <select value={newVehicle.fuelType} onChange={e => setNewVehicle({ ...newVehicle, fuelType: e.target.value })}>
+                                <option value="petrol">Petrol</option>
+                                <option value="diesel">Diesel</option>
+                                <option value="electric">Electric</option>
+                            </select>
+                        </div>
+                    )}
                     <div className="input-group">
-                        <label>Fuel Type</label>
-                        <select value={newVehicle.fuelType} onChange={e => setNewVehicle({ ...newVehicle, fuelType: e.target.value })}>
-                            <option value="petrol">Petrol</option>
-                            <option value="diesel">Diesel</option>
-                            <option value="electric">Electric</option>
-                        </select>
+                        <label>Cost per Minute ($)</label>
+                        <input type="number" step="0.01" value={newVehicle.costPerMinute} onChange={e => setNewVehicle({ ...newVehicle, costPerMinute: parseFloat(e.target.value) })} required />
                     </div>
-                )}
-                <div className="input-group">
-                    <label>Cost per Minute ($)</label>
-                    <input type="number" step="0.01" value={newVehicle.costPerMinute} onChange={e => setNewVehicle({ ...newVehicle, costPerMinute: parseFloat(e.target.value) })} required />
-                </div>
-                <div className="input-group">
-                    <label>Image URL (optional)</label>
-                    <input
-                        type="text"
-                        placeholder="https://example.com/vehicle.jpg"
-                        value={newVehicle.imageUrl}
-                        onChange={e => setNewVehicle({ ...newVehicle, imageUrl: e.target.value })}
-                    />
-                </div>
-                <div className="input-group">
-                    <label>Or upload from computer (optional)</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={e => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                                void handleCreateImageUpload(file);
-                            }
-                            e.currentTarget.value = '';
-                        }}
-                        disabled={uploadingImage}
-                    />
-                    {uploadingImage && <small>Uploading image...</small>}
-                </div>
-                <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
-            </form>
+                    <div className="input-group">
+                        <label>Available From</label>
+                        <input
+                            type="datetime-local"
+                            value={newVehicle.availableFrom}
+                            onChange={e => setNewVehicle({ ...newVehicle, availableFrom: e.target.value })}
+                            required
+                        />
+                    </div>
 
-            <h3>Vehicles List</h3>
-            <table className="data-table">
-                <thead>
-                    <tr>
-                        <th>ID / Model</th>
-                        <th>Mobility Provider Company</th>
-                        <th>Pricing</th>
-                        <th>Availability</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {vehicles.map(v => (
-                        <tr key={v.id}>
-                            <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
-                            <td>{v.provider?.name || '-'}</td>
-                            <td>
-                                {editingVehicleId === v.id ? (
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={editVehicle.costPerMinute}
-                                        onChange={e => setEditVehicle({ ...editVehicle, costPerMinute: parseFloat(e.target.value) })}
-                                    />
-                                ) : (
-                                    <>${v.costPerMinute}/min</>
-                                )}
-                            </td>
-                            <td>
-                                {editingVehicleId === v.id ? (
-                                    <select
-                                        value={String(editVehicle.availability)}
-                                        onChange={e => setEditVehicle({ ...editVehicle, availability: e.target.value === 'true' })}
-                                    >
-                                        <option value="true">Yes</option>
-                                        <option value="false">No</option>
-                                    </select>
-                                ) : (
-                                    <>{v.availability ? 'Yes' : 'No'}</>
-                                )}
-                            </td>
-                            <td>
-                                {editingVehicleId === v.id ? (
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                        {v.car && (
-                                            <input
-                                                placeholder="Car model"
-                                                value={editVehicle.model}
-                                                onChange={e => setEditVehicle({ ...editVehicle, model: e.target.value })}
-                                            />
-                                        )}
-                                        <button className="success-btn" onClick={() => handleUpdate(v.id, !!v.car)}>Update</button>
-                                        <button onClick={cancelEdit}>Cancel</button>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button onClick={() => startEdit(v)}>Edit</button>
-                                        <button className="del-btn" onClick={() => handleDelete(v.id)}>Remove</button>
-                                    </div>
-                                )}
-                            </td>
+                    <div className="input-group">
+                        <label>Available To</label>
+                        <input
+                            type="datetime-local"
+                            value={newVehicle.availableTo}
+                            onChange={e => setNewVehicle({ ...newVehicle, availableTo: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="input-group">
+                        <label>Image URL (optional)</label>
+                        <input
+                            type="text"
+                            placeholder="https://example.com/vehicle.jpg"
+                            value={newVehicle.imageUrl}
+                            onChange={e => setNewVehicle({ ...newVehicle, imageUrl: e.target.value })}
+                        />
+                    </div>
+                    <div className="input-group">
+                        <label>Or upload from computer (optional)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    void handleCreateImageUpload(file);
+                                }
+                                e.currentTarget.value = '';
+                            }}
+                            disabled={uploadingImage}
+                        />
+                        {uploadingImage && <small>Uploading image...</small>}
+                    </div>
+                    <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
+                </form>
+
+                <h3>Vehicles List</h3>
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID / Model</th>
+                            <th>Mobility Provider Company</th>
+                            <th>Pricing</th>
+                            <th>Available From</th>
+                            <th>Available To</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
-                    ))}
-                    {vehicles.length === 0 && <tr><td colSpan={4}>No vehicles.</td></tr>}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {vehicles.map(v => {
+                            const availability = getAvailability(v.availableFrom, v.availableTo);
+
+                            const formatDateTime = (value: string) =>
+                                new Date(value).toLocaleString([], {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+
+                            return (
+                                <tr key={v.id}>
+                                    <td>{v.car?.model || (v.bike ? 'Bike' : 'Scooter')}</td>
+                                    <td>{v.provider?.name || '-'}</td>
+
+                                    <td>
+                                        {editingVehicleId === v.id ? (
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={editVehicle.costPerMinute}
+                                                onChange={e =>
+                                                    setEditVehicle({
+                                                        ...editVehicle,
+                                                        costPerMinute: parseFloat(e.target.value)
+                                                    })
+                                                }
+                                            />
+                                        ) : (
+                                            <>${v.costPerMinute}/min</>
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        {editingVehicleId === v.id ? (
+                                            <input
+                                                type="datetime-local"
+                                                value={editVehicle.availableFrom}
+                                                onChange={e =>
+                                                    setEditVehicle({
+                                                        ...editVehicle,
+                                                        availableFrom: e.target.value
+                                                    })
+                                                }
+                                            />
+                                        ) : (
+                                            <>{formatDateTime(v.availableFrom)}</>
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        {editingVehicleId === v.id ? (
+                                            <input
+                                                type="datetime-local"
+                                                value={editVehicle.availableTo}
+                                                onChange={e =>
+                                                    setEditVehicle({
+                                                        ...editVehicle,
+                                                        availableTo: e.target.value
+                                                    })
+                                                }
+                                            />
+                                        ) : (
+                                            <>{formatDateTime(v.availableTo)}</>
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        {editingVehicleId === v.id ? (
+                                            <span style={{ color: '#6c757d' }}>
+                                                Status updates from date range
+                                            </span>
+                                        ) : (
+                                            <span
+                                                style={{
+                                                    color:
+                                                        availability.status === 'AVAILABLE'
+                                                            ? 'green'
+                                                            : availability.status === 'UPCOMING'
+                                                                ? '#b58900'
+                                                                : '#b02a37',
+                                                    fontWeight: 500
+                                                }}
+                                            >
+                                                {availability.text}
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        {editingVehicleId === v.id ? (
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                {v.car && (
+                                                    <input
+                                                        placeholder="Car model"
+                                                        value={editVehicle.model}
+                                                        onChange={e =>
+                                                            setEditVehicle({
+                                                                ...editVehicle,
+                                                                model: e.target.value
+                                                            })
+                                                        }
+                                                    />
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    className="success-btn"
+                                                    onClick={() => handleUpdate(v.id, !!v.car)}
+                                                >
+                                                    Update
+                                                </button>
+
+                                                <button type="button" onClick={cancelEdit}>
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <button type="button" onClick={() => startEdit(v)}>
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="del-btn"
+                                                    onClick={() => handleDelete(v.id)}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+
+                        {vehicles.length === 0 && (
+                            <tr>
+                                <td colSpan={7}>No vehicles.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

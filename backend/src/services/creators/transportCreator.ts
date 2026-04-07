@@ -13,9 +13,10 @@ interface CreateTransportInput {
     model?: string;
     fuelType?: string;
     imageUrl?: string;
-}
-
-class TransportCreator {
+    availability: boolean;
+    availableFrom: Date;
+    availableTo: Date;
+}class TransportCreator {
     async create(input: CreateTransportInput) {
         const normalizedType = String(input.type).toUpperCase();
         const fuelType = input.fuelType || 'petrol';
@@ -23,21 +24,54 @@ class TransportCreator {
         const imageUrl = input.imageUrl?.trim() || undefined;
 
         const imageCreateData = imageUrl ? { imageUrl } : {};
-    
+
+        if (!input.availableFrom || !input.availableTo) {
+            throw new Error('Missing availability dates');
+        }
+
+        if (input.availableFrom >= input.availableTo) {
+            throw new Error('Invalid availability range');
+        }
 
         return prisma.transport.create({
             data: {
                 providerId: input.providerId,
                 costPerMinute: input.costPerMinute,
                 availability: true,
+                availableFrom: input.availableFrom,
+                availableTo: input.availableTo,
+
                 ...(normalizedType === 'CAR'
-                    ? { car: { create: { model: input.model || 'Unknown', fuelType, emissionFactorGPerKm, ...imageCreateData } } }
+                    ? {
+                        car: {
+                            create: {
+                                model: input.model || 'Unknown',
+                                fuelType,
+                                emissionFactorGPerKm,
+                                ...imageCreateData
+                            }
+                        }
+                    }
                     : {}),
+
                 ...(normalizedType === 'BIKE'
-                    ? { bike: { create: { ...imageCreateData } } }
+                    ? {
+                        bike: {
+                            create: { ...imageCreateData }
+                        }
+                    }
                     : {}),
+
                 ...(normalizedType === 'SCOOTER'
-                    ? { scooter: { create: { fuelType, emissionFactorGPerKm, ...imageCreateData } } }
+                    ? {
+                        scooter: {
+                            create: {
+                                fuelType,
+                                emissionFactorGPerKm,
+                                ...imageCreateData
+                            }
+                        }
+                    }
                     : {})
             },
             include: {

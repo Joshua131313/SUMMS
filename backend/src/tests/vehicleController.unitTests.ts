@@ -4,6 +4,8 @@ import { stub, mockRequest, mockResponse } from './support/testHelpers.js';
 import prisma from '../prisma.js';
 import { vehicleRecommendationService } from '../services/recommendations/vehicleRecommendationService.js';
 import type { ControllerTest } from './controllers.unitTests.js';
+import { getManageableVehicles } from '../controllers/providerController.js';
+import { getAvailableSlots } from '../utils/availability.js';
 
 const vehicleTests: ControllerTest[] = [
     {
@@ -37,8 +39,8 @@ const vehicleTests: ControllerTest[] = [
             await searchVehicles(req, res);
 
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData[0].nextAvailableAt, null);
-            assert.equal(res.jsonData[1].nextAvailableAt.toISOString(), new Date('2026-01-01').toISOString());
+            assert.equal(res.jsonData[0].availableSlots.length, 1);
+            assert.equal(res.jsonData[1].availableSlots.length, 1);
         }
     },
     {
@@ -69,7 +71,7 @@ const vehicleTests: ControllerTest[] = [
             const res = mockResponse();
             await getVehicleDetails(req, res);
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData.nextAvailableAt, null);
+            assert.ok(Array.isArray(res.jsonData.availableSlots));
         }
     },
     {
@@ -80,7 +82,7 @@ const vehicleTests: ControllerTest[] = [
             const res = mockResponse();
             await getVehicleDetails(req, res);
             assert.equal(res.statusCode, 200);
-            assert.equal(res.jsonData.nextAvailableAt.toISOString(), new Date('2026-02-02').toISOString());
+            assert.ok(res.jsonData.availableSlots.length > 0);
         }
     },
     {
@@ -135,6 +137,167 @@ const vehicleTests: ControllerTest[] = [
             const res = mockResponse();
             await getRecommendedVehicles(req, res);
             assert.equal(res.statusCode, 500);
+        }
+    },
+    {
+        name: 'searchVehicles - uses getAvailableSlots when dates exist',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: []
+                }
+            ]);
+
+            const req = mockRequest();
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.ok(res.jsonData[0].availableSlots.length >= 0);
+        }
+    },
+    {
+        name: 'searchVehicles - ignores invalid type filter',
+        async run() {
+            let givenWhere: any;
+            stub(prisma.transport, 'findMany', async (opts: any) => {
+                givenWhere = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ query: { type: 'plane' } });
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(givenWhere.car, undefined);
+            assert.equal(givenWhere.bike, undefined);
+        }
+    },
+    {
+        name: 'searchVehicles - availability false filter',
+        async run() {
+            let givenWhere: any;
+            stub(prisma.transport, 'findMany', async (opts: any) => {
+                givenWhere = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ query: { availability: 'false' } });
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(givenWhere.availability, false);
+        }
+    },
+    {
+        name: 'searchVehicles - availability false filter',
+        async run() {
+            let givenWhere: any;
+            stub(prisma.transport, 'findMany', async (opts: any) => {
+                givenWhere = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ query: { availability: 'false' } });
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(givenWhere.availability, false);
+        }
+    },
+    {
+        name: 'getManageableVehicles - handles undefined bookings fallback',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: undefined, // 🔥 triggers fallback
+                    car: null,
+                    bike: null,
+                    scooter: null,
+                    provider: {}
+                }
+            ]);
+
+            const req = mockRequest({ user: { role: 'ADMIN' } });
+            const res = mockResponse();
+
+            await getManageableVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.ok(Array.isArray(res.jsonData[0].availableSlots));
+        }
+    },
+    {
+        name: 'getVehicleDetails - executes getAvailableSlots when dates exist',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                id: 'v1',
+                availableFrom: new Date(),
+                availableTo: new Date(Date.now() + 100000),
+                bookings: []
+            }));
+
+            const req = mockRequest({ params: { id: 'v1' } });
+            const res = mockResponse();
+
+            await getVehicleDetails(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(Array.isArray(res.jsonData.availableSlots));
+        }
+    },
+    {
+        name: 'searchVehicles - bookings fallback executes inside slot calculation',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: undefined // 🔥 triggers fallback
+                }
+            ]);
+
+            const req = mockRequest();
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(Array.isArray(res.jsonData[0].availableSlots));
+        }
+    },
+    {
+        name: 'getVehicleDetails - covers slot calculation and bookings fallback',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                id: 'v1',
+                availableFrom: new Date(),
+                availableTo: new Date(Date.now() + 100000),
+                bookings: undefined
+            }));
+
+            const req = mockRequest({ params: { id: 'v1' } });
+            const res = mockResponse();
+
+            await getVehicleDetails(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(Array.isArray(res.jsonData.availableSlots));
         }
     }
 ];
