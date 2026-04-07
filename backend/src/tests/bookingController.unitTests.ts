@@ -512,6 +512,86 @@ const bookingTests: ControllerTest[] = [
 
             assert.equal(passedFilter.clientId, 'u1');
         }
+    },
+    {
+        name: 'reserveVehicle - inner fs catch executes',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => {
+                throw new Error('DB FAIL');
+            });
+
+            stub(fs, 'existsSync', () => {
+                throw new Error('FS FAIL');
+            });
+
+            const req = mockRequest({ body: {}, user: { id: 'u1' } });
+            const res = mockResponse();
+
+            await reserveVehicle(req, res);
+
+            assert.equal(res.statusCode, 500);
+        }
+    },
+    {
+        name: 'endRental - enforces minimum 1 minute duration',
+        async run() {
+            const now = new Date();
+
+            const t0 = new Date(now.getTime() - 1000); // 1 second ago
+
+            stub(prisma.booking, 'findUnique', async () => ({
+                id: 'b1',
+                clientId: 'u1',
+                status: 'ACTIVE',
+                transportId: 't1',
+                startTime: t0,
+                client: {},
+                transport: { car: { emissionFactorGPerKm: 100 } }
+            }));
+
+            let capturedDuration: number = 0;
+
+            stub(tripPricingService, 'calculate', (opts: any) => {
+                capturedDuration = opts.durationMinutes;
+                return { total: 5, strategy: 'BASE', adjustments: [] };
+            });
+
+            stub(prisma.booking, 'update', async () => ({ status: 'COMPLETED' }));
+            stub(prisma.userProfile, 'update', async () => ({}));
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
+
+            const req = mockRequest({ params: { id: 'b1' }, user: { id: 'u1' } });
+            const res = mockResponse();
+
+            await endRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.equal(capturedDuration, 1);
+        }
+    },
+    {
+        name: 'payRental - missing expirationDate triggers empty string branch',
+        async run() {
+            const req = mockRequest({
+                body: {
+                    paymentMethod: 'CARD',
+                    cardNumber: '1111222233334444',
+                    cardFirstName: 'A',
+                    cardLastName: 'B',
+                    cardVerificationCode: '123'
+                    // ❌ NO expirationDate
+                },
+                user: { id: 'u1' }
+            });
+
+            const res = mockResponse();
+
+            await payRental(req, res);
+
+            assert.equal(res.statusCode, 400);
+            assert.match(res.jsonData.error, /Invalid expiration date format/);
+        }
     }
 ];
 

@@ -4,6 +4,7 @@ import { stub, mockRequest, mockResponse } from './support/testHelpers.js';
 import prisma from '../prisma.js';
 import { vehicleRecommendationService } from '../services/recommendations/vehicleRecommendationService.js';
 import type { ControllerTest } from './controllers.unitTests.js';
+import { getManageableVehicles } from '../controllers/providerController.js';
 
 const vehicleTests: ControllerTest[] = [
     {
@@ -209,6 +210,51 @@ const vehicleTests: ControllerTest[] = [
             await searchVehicles(req, res);
 
             assert.equal(givenWhere.availability, false);
+        }
+    },
+    {
+        name: 'getManageableVehicles - handles undefined bookings fallback',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: undefined, // 🔥 triggers fallback
+                    car: null,
+                    bike: null,
+                    scooter: null,
+                    provider: {}
+                }
+            ]);
+
+            const req = mockRequest({ user: { role: 'ADMIN' } });
+            const res = mockResponse();
+
+            await getManageableVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.ok(Array.isArray(res.jsonData[0].availableSlots));
+        }
+    },
+    {
+        name: 'getVehicleDetails - executes getAvailableSlots when dates exist',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                id: 'v1',
+                availableFrom: new Date(),
+                availableTo: new Date(Date.now() + 100000),
+                bookings: []
+            }));
+
+            const req = mockRequest({ params: { id: 'v1' } });
+            const res = mockResponse();
+
+            await getVehicleDetails(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(Array.isArray(res.jsonData.availableSlots));
         }
     }
 ];

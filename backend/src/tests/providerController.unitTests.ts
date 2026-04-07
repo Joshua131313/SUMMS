@@ -627,7 +627,8 @@ const providerTests: ControllerTest[] = [
 
             assert.ok(!('fuelType' in passedData.car.update));
         }
-    }
+    },
+    
 ];
 
 export default providerTests;
