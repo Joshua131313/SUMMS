@@ -67,7 +67,6 @@ export const searchVehicles = async (req: Request, res: Response) => {
         });
     }
 };
-/* istanbul ignore next */
 export const getVehicleDetails = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
@@ -88,7 +87,7 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
         }
 
         let availableSlots: any[] = [];
-
+        /* istanbul ignore next */
         if (vehicle.availableFrom && vehicle.availableTo) {
             availableSlots = getAvailableSlots(
                 vehicle.availableFrom,
