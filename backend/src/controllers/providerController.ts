@@ -4,6 +4,7 @@ import { transportCreator } from '../services/creators/transportCreator.js';
 
 import prisma from '../prisma.js';
 import { getAvailableSlots } from '../utils/availability.js';
+
 export const getProviders = async (req: Request, res: Response) => {
     try {
         const providers = await prisma.mobilityProvider.findMany();
@@ -16,6 +17,7 @@ export const getProviders = async (req: Request, res: Response) => {
 export const createProvider = async (req: Request, res: Response) => {
     try {
         const name = String(req.body?.name || '').trim();
+
         if (!name) {
             return res.status(400).json({ error: 'Provider name is required' });
         }
@@ -81,33 +83,51 @@ export const getManageableVehicles = async (req: Request, res: Response) => {
             orderBy: { id: 'desc' }
         });
 
-        const enriched = vehicles.map(v => {
+        const enriched = (vehicles || []).map((v) => {
             const slots = getAvailableSlots(
-                v.availableFrom,
-                v.availableTo,
-                v.bookings
+                v.availableFrom ?? null,
+                v.availableTo ?? null,
+                v.bookings ?? []
             );
+
+            const hasSlots = Array.isArray(slots) && slots.length > 0;
 
             return {
                 ...v,
                 availableSlots: slots,
-                isAvailable: slots.length > 0
+                isAvailable: hasSlots
             };
         });
 
-        res.json(enriched);
+        return res.json(enriched);
     } catch (error: any) {
-        res.status(500).json({ error: 'Failed to fetch vehicles', details: error.message });
+        return res.status(500).json({ error: 'Failed to fetch vehicles', details: error.message });
     }
 };
 
 export const addVehicle = async (req: Request, res: Response) => {
     try {
-        const { providerId, costPerMinute, type, model, fuelType, imageUrl, availability, availableFrom, availableTo } = req.body;
+        const {
+            providerId,
+            costPerMinute,
+            type,
+            model,
+            fuelType,
+            imageUrl,
+            availability,
+            availableFrom,
+            availableTo
+        } = req.body;
+
         const isAdmin = req.user?.role === 'ADMIN';
         const targetProviderId = isAdmin ? providerId : req.user!.id;
 
-        if (!targetProviderId || costPerMinute === undefined || costPerMinute === null || Number.isNaN(Number(costPerMinute))) {
+        if (
+            !targetProviderId ||
+            costPerMinute === undefined ||
+            costPerMinute === null ||
+            Number.isNaN(Number(costPerMinute))
+        ) {
             return res.status(400).json({ error: 'Missing required field: costPerMinute' });
         }
 
@@ -131,17 +151,18 @@ export const addVehicle = async (req: Request, res: Response) => {
             model,
             fuelType,
             imageUrl,
-            availableFrom: availableFrom,
-            availableTo: availableTo,
+            availableFrom,
+            availableTo,
             availability
         });
 
-        res.status(201).json(transport);
+        return res.status(201).json(transport);
     } catch (error: any) {
-        console.log(error)
-        res.status(500).json({ error: 'Failed to add vehicle', details: error.message });
+        console.log(error);
+        return res.status(500).json({ error: 'Failed to add vehicle', details: error.message });
     }
 };
+
 export const updateVehicle = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
@@ -173,11 +194,11 @@ export const updateVehicle = async (req: Request, res: Response) => {
             });
         }
 
-        if (availableFrom && availableTo) {
+        if (availableFrom !== undefined && availableTo !== undefined) {
             const start = new Date(availableFrom);
             const end = new Date(availableTo);
 
-            if (start >= end) {
+            if (!(start < end)) {
                 return res.status(400).json({
                     error: 'Available To must be after Available From'
                 });
@@ -188,55 +209,55 @@ export const updateVehicle = async (req: Request, res: Response) => {
         const transportBike = (existingTransport as any).bike;
         const transportScooter = (existingTransport as any).scooter;
 
-        const imageUrlUpdate =
-            imageUrl !== undefined ? { imageUrl } : {};
+        const imageUrlUpdate = {};
+        if (imageUrl !== undefined) {
+            Object.assign(imageUrlUpdate, { imageUrl });
+        }
+
+        const data: any = {};
+
+        if (costPerMinute !== undefined) {
+            data.costPerMinute = costPerMinute;
+        }
+
+        if (availableFrom !== undefined) {
+            data.availableFrom = new Date(availableFrom);
+        }
+
+        if (availableTo !== undefined) {
+            data.availableTo = new Date(availableTo);
+        }
+
+        if (transportCar) {
+            data.car = {
+                update: {
+                    ...(model !== undefined ? { model } : {}),
+                    ...(fuelType !== undefined ? { fuelType } : {}),
+                    ...imageUrlUpdate
+                }
+            };
+        }
+
+        if (transportBike && Object.keys(imageUrlUpdate).length > 0) {
+            data.bike = {
+                update: {
+                    ...imageUrlUpdate
+                }
+            };
+        }
+
+        if (transportScooter) {
+            data.scooter = {
+                update: {
+                    ...(fuelType !== undefined ? { fuelType } : {}),
+                    ...imageUrlUpdate
+                }
+            };
+        }
 
         const updatedTransport = await prisma.transport.update({
             where: { id },
-            data: {
-                ...(costPerMinute !== undefined && { costPerMinute }),
-
-                ...(availableFrom !== undefined && {
-                    availableFrom: new Date(availableFrom)
-                }),
-                ...(availableTo !== undefined && {
-                    availableTo: new Date(availableTo)
-                }),
-
-                ...(transportCar
-                    ? {
-                        car: {
-                            update: {
-                                ...(model !== undefined && { model }),
-                                ...(fuelType !== undefined && { fuelType }),
-                                ...imageUrlUpdate
-                            }
-                        }
-                    }
-                    : {}),
-
-                ...(transportBike &&
-                    Object.keys(imageUrlUpdate).length > 0
-                    ? {
-                        bike: {
-                            update: {
-                                ...imageUrlUpdate
-                            }
-                        }
-                    }
-                    : {}),
-
-                ...(transportScooter
-                    ? {
-                        scooter: {
-                            update: {
-                                ...(fuelType !== undefined && { fuelType }),
-                                ...imageUrlUpdate
-                            }
-                        }
-                    }
-                    : {})
-            },
+            data,
             include: {
                 car: true,
                 bike: true,
@@ -257,30 +278,32 @@ export const updateVehicle = async (req: Request, res: Response) => {
                     ...(req.user?.id ? { actorUserId: req.user.id } : {}),
                     reason: 'Provider availability update'
                 });
-            } catch {
+            } catch (e) {
                 result = updatedTransport;
             }
         }
 
         const availableSlots = getAvailableSlots(
-            updatedTransport.availableFrom,
-            updatedTransport.availableTo,
-            updatedTransport.bookings || []
+            updatedTransport.availableFrom ?? null,
+            updatedTransport.availableTo ?? null,
+            updatedTransport.bookings ?? []
         );
 
-        res.json({
+        const hasSlots = Array.isArray(availableSlots) && availableSlots.length > 0;
+
+        return res.json({
             ...result,
             availableSlots,
-            isAvailable: availableSlots.length > 0
+            isAvailable: hasSlots
         });
-
     } catch (error: any) {
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Failed to update vehicle',
             details: error.message
         });
     }
 };
+
 export const removeVehicle = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
@@ -296,7 +319,9 @@ export const removeVehicle = async (req: Request, res: Response) => {
         }
 
         if (!isAdmin && existingTransport.providerId !== req.user!.id) {
-            return res.status(403).json({ error: 'You can only delete your own company vehicles' });
+            return res.status(403).json({
+                error: 'You can only delete your own company vehicles'
+            });
         }
 
         const activeBookings = await prisma.booking.findFirst({
@@ -307,15 +332,20 @@ export const removeVehicle = async (req: Request, res: Response) => {
         });
 
         if (activeBookings) {
-            return res.status(400).json({ error: 'Cannot remove vehicle with active or reserved bookings' });
+            return res.status(400).json({
+                error: 'Cannot remove vehicle with active or reserved bookings'
+            });
         }
 
         await prisma.transport.delete({
             where: { id }
         });
 
-        res.json({ message: 'Vehicle removed successfully' });
+        return res.json({ message: 'Vehicle removed successfully' });
     } catch (error: any) {
-        res.status(500).json({ error: 'Failed to remove vehicle', details: error.message });
+        return res.status(500).json({
+            error: 'Failed to remove vehicle',
+            details: error.message
+        });
     }
 };
