@@ -256,6 +256,48 @@ const vehicleTests: ControllerTest[] = [
 
             assert.ok(Array.isArray(res.jsonData.availableSlots));
         }
+    },
+    {
+        name: 'searchVehicles - bookings fallback executes inside slot calculation',
+        async run() {
+            stub(prisma.transport, 'findMany', async () => [
+                {
+                    id: 'v1',
+                    availableFrom: new Date(),
+                    availableTo: new Date(Date.now() + 100000),
+                    bookings: undefined // 🔥 triggers fallback
+                }
+            ]);
+
+            const req = mockRequest();
+            const res = mockResponse();
+
+            await searchVehicles(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(Array.isArray(res.jsonData[0].availableSlots));
+        }
+    },
+    {
+        name: 'getVehicleDetails - covers slot calculation and bookings fallback',
+        async run() {
+            stub(prisma.transport, 'findUnique', async () => ({
+                id: 'v1',
+                availableFrom: new Date(),
+                availableTo: new Date(Date.now() + 100000),
+                bookings: undefined 
+            }));
+
+            const req = mockRequest({ params: { id: 'v1' } });
+            const res = mockResponse();
+
+            await getVehicleDetails(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.ok(Array.isArray(res.jsonData.availableSlots));
+        }
     }
 ];
 
