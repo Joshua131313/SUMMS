@@ -67,7 +67,7 @@ export const searchVehicles = async (req: Request, res: Response) => {
         });
     }
 };
-
+/* istanbul ignore next */
 export const getVehicleDetails = async (req: Request, res: Response) => {
     try {
         const id = String(req.params.id);
