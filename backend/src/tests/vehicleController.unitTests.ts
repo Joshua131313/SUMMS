@@ -5,6 +5,7 @@ import prisma from '../prisma.js';
 import { vehicleRecommendationService } from '../services/recommendations/vehicleRecommendationService.js';
 import type { ControllerTest } from './controllers.unitTests.js';
 import { getManageableVehicles } from '../controllers/providerController.js';
+import { getAvailableSlots } from '../utils/availability.js';
 
 const vehicleTests: ControllerTest[] = [
     {
@@ -286,7 +287,7 @@ const vehicleTests: ControllerTest[] = [
                 id: 'v1',
                 availableFrom: new Date(),
                 availableTo: new Date(Date.now() + 100000),
-                bookings: undefined 
+                bookings: undefined
             }));
 
             const req = mockRequest({ params: { id: 'v1' } });
@@ -297,6 +298,41 @@ const vehicleTests: ControllerTest[] = [
             assert.equal(res.statusCode, 200);
 
             assert.ok(Array.isArray(res.jsonData.availableSlots));
+        }
+    },
+    {
+        name: 'getVehicleDetails - FORCE coverage of bookings fallback',
+        async run() {
+            let capturedBookings: any = null;
+
+            // 🔥 intercept getAvailableSlots call
+            const original = getAvailableSlots;
+
+            // @ts-ignore
+            global.getAvailableSlots = (from: any, to: any, bookings: any) => {
+                capturedBookings = bookings;
+                return [];
+            };
+
+            stub(prisma.transport, 'findUnique', async () => ({
+                id: 'v1',
+                availableFrom: new Date(),
+                availableTo: new Date(Date.now() + 100000),
+                bookings: undefined
+            }));
+
+            const req = mockRequest({ params: { id: 'v1' } });
+            const res = mockResponse();
+
+            await getVehicleDetails(req, res);
+
+            assert.equal(res.statusCode, 200);
+
+            assert.deepEqual(capturedBookings, []);
+
+            // restore
+            // @ts-ignore
+            global.getAvailableSlots = original;
         }
     }
 ];
