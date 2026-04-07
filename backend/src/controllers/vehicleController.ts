@@ -87,7 +87,7 @@ export const getVehicleDetails = async (req: Request, res: Response) => {
         }
 
         let availableSlots: any[] = [];
-        /* istanbul ignore next */
+        /* c8 ignore next */
         if (vehicle.availableFrom && vehicle.availableTo) {
             availableSlots = getAvailableSlots(
                 vehicle.availableFrom,
