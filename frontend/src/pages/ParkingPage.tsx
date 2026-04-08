@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import api from '../lib/api';
 import { getErrorMessage } from '../lib/apiError';
+import { useAuth } from '../features/auth/context/useAuth';
+import {
+    getPaymentStorageKey,
+    isRentalPaymentDataValid,
+    parseStoredPaymentData
+} from '../features/rentals/rentalHelpers';
 
 // Fix for Leaflet default icon issues in React/Webpack/Vite
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -31,6 +38,8 @@ type ParkingSpot = {
 };
 
 const ParkingPage = () => {
+    const { profile } = useAuth();
+    const navigate = useNavigate();
     const [spots, setSpots] = useState<ParkingSpot[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState('');
@@ -52,6 +61,13 @@ const ParkingPage = () => {
     }, []);
 
     const reserveSpot = async (spotId: string) => {
+        if (!profile) return;
+        const raw = localStorage.getItem(getPaymentStorageKey(profile.id));
+        const paymentData = parseStoredPaymentData(raw);
+        if (!isRentalPaymentDataValid(paymentData)) {
+            navigate('/payment');
+            return;
+        }
         try {
             const start = new Date();
             const end = new Date(start.getTime() + 7200000); // 2 hours

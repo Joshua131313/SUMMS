@@ -321,6 +321,38 @@ p {
     font-weight: 700;
 }
 
+.platform-co2-card {
+    background: linear-gradient(135deg, #7f9f97 0%, #6f9188 100%);
+    border-color: #5f8379;
+    box-shadow: 0 10px 24px rgba(60, 86, 79, 0.2);
+}
+
+.platform-co2-card .analytics-co2-stat {
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.platform-co2-card .analytics-co2-stat-primary {
+    background: rgba(56, 80, 73, 0.45);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.admin-dashboard.is-admin .card:not(.platform-co2-card) {
+    background: #eef4f2;
+    border: 1px solid #d6e3df;
+}
+
+.admin-dashboard.is-admin .card:not(.platform-co2-card) h3 {
+    color: #3f5f57;
+}
+
+.admin-dashboard.is-admin .card:not(.platform-co2-card) p,
+.admin-dashboard.is-admin .card:not(.platform-co2-card) .analytics-kpi-value,
+.admin-dashboard.is-admin .card:not(.platform-co2-card) .analytics-kpi-label,
+.admin-dashboard.is-admin .card:not(.platform-co2-card) .analytics-sub-note {
+    color: #4f6d66;
+}
+
 .provider-co2-card {
     margin-top: -20px;
     margin-bottom: 24px;

@@ -126,7 +126,7 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className={`page-container admin-dashboard ${isAdmin ? 'is-admin' : 'is-provider-analytics'}`}>
             <h1 className="text-5xl font-bold mb-12">
                 {isAdmin ? 'Admin Dashboard' : 'Provider Analytics'}
             </h1>
@@ -187,7 +187,7 @@ const AdminDashboard = () => {
                         {gatewayPieData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={210}>
                                 <PieChart>
-                                    <Pie data={gatewayPieData} cx="50%" cy="45%" outerRadius={68} dataKey="value"
+                                    <Pie data={gatewayPieData} cx="50%" cy="50%" outerRadius={68} dataKey="value"
                                         label={({ percent = 0 }) => percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : ''}
                                         labelLine={false}
                                     >
@@ -204,7 +204,7 @@ const AdminDashboard = () => {
                 )}
             </div>
 
-            <div className="card analytics-co2-card" style={{ marginTop: 32 }}>
+            <div className={`card analytics-co2-card ${isAdmin ? 'platform-co2-card' : ''}`.trim()} style={{ marginTop: 32 }}>
                 <div className="analytics-co2-header">
                     <div>
                         <h3>{co2Heading}</h3>
@@ -236,7 +236,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            <div className="card" style={{ marginTop: 32 }}>
+            <div className="card analytics-city-card" style={{ marginTop: 32 }}>
                 <h3>Usage Per City</h3>
                 {cityPieData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={320}>
@@ -257,7 +257,7 @@ const AdminDashboard = () => {
             </div>
 
             {!isAdmin && (
-                <div className="card" style={{ marginTop: 32 }}>
+                <div className="card analytics-vehicles-card" style={{ marginTop: 32 }}>
                     <h3>Your Vehicle Rental Breakdown</h3>
 
                     {rentalsByVehicle.length > 0 ? (
@@ -292,7 +292,7 @@ const AdminDashboard = () => {
             )}
 
             {isAdmin && (
-                <div style={{ marginTop: 40 }}>
+                <div className="card analytics-users-card" style={{ marginTop: 40 }}>
                     <h3 style={{ fontSize: '28px', fontWeight: '700' }}>User Management</h3>
                     <p style={{ marginBottom: 16 }}>
                         Number of registered users: <strong>{users.length}</strong>
