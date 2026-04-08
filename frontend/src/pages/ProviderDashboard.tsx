@@ -440,20 +440,22 @@ const ProviderDashboard = () => {
                     <button type="submit" disabled={mobilityProviderMissingCompany}>Add Vehicle</button>
                 </form>
 
-                <h3>Vehicles List</h3>
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID / Model</th>
-                            <th>Mobility Provider Company</th>
-                            <th>Pricing</th>
-                            <th>Available From</th>
-                            <th>Available To</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div className="provider-vehicle-list-card">
+                    <h3>Vehicles List</h3>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="data-table" style={{ minWidth: '760px' }}>
+                            <thead>
+                                <tr>
+                                    <th>ID / Model</th>
+                                    <th>Mobility Provider Company</th>
+                                    <th>Pricing</th>
+                                    <th>Available From</th>
+                                    <th>Available To</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                         {vehicles.map(v => {
                             const availability = getAvailability(v.availableFrom, v.availableTo);
 
@@ -592,13 +594,15 @@ const ProviderDashboard = () => {
                             );
                         })}
 
-                        {vehicles.length === 0 && (
-                            <tr>
-                                <td colSpan={7}>No vehicles.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                {vehicles.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7}>No vehicles.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     );

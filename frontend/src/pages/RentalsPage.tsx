@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Leaf } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../features/auth/context/useAuth';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getErrorMessage } from '../lib/apiError';
 import {
     getPaymentStorageKey,
@@ -32,12 +32,16 @@ type Booking = {
 
 const RentalsPage = () => {
     const { profile } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<Booking | null>(null);
-    const [paymentConfirmation, setPaymentConfirmation] = useState('');
+    const [paymentConfirmation, setPaymentConfirmation] = useState(
+        (location.state as { paymentConfirmation?: string } | null)?.paymentConfirmation ?? ''
+    );
     const [paymentError, setPaymentError] = useState('');
 
     const getStoredPaymentData = (): RentalPaymentData | null => {
@@ -64,7 +68,7 @@ const RentalsPage = () => {
     const openPaymentModal = (booking: Booking) => {
         const paymentData = getStoredPaymentData();
         if (!isRentalPaymentDataValid(paymentData)) {
-            setPaymentError('Payment cannot be processed yet. Please enter valid credit card details in Account Settings.');
+            navigate(`/payment?bookingId=${booking.id}`);
             return;
         }
         setPaymentError('');
