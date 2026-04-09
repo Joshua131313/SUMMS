@@ -572,6 +572,42 @@ const bookingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'payRental - admin can pay another user booking',
+        async run() {
+            process.env.PAYMENT_SERVICE_AVAILABLE = 'true';
+
+            let findUniqueCalls = 0;
+            stub(prisma.booking, 'findUnique', async () => {
+                findUniqueCalls += 1;
+                return findUniqueCalls === 1
+                    ? { id: 'b1', clientId: 'u2', status: 'COMPLETED', totalCost: 10, payment: null, transportId: 't1' }
+                    : { id: 'b1', clientId: 'u2', status: 'COMPLETED', totalCost: 10, transportId: 't1' };
+            });
+            stub(paymentCreator, 'create', async () => ({ id: 'pay-admin-1' }));
+            stub(prisma.transport, 'update', async () => ({}));
+
+            const req = mockRequest({
+                body: {
+                    paymentMethod: 'CARD',
+                    cardNumber: '1111222233334444',
+                    cardFirstName: 'Admin',
+                    cardLastName: 'User',
+                    cardVerificationCode: '123',
+                    expirationDate: '2099-12'
+                },
+                user: { id: 'admin-1', role: 'ADMIN' },
+                params: { id: 'b1' }
+            });
+
+            const res = mockResponse();
+
+            await payRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.transactionId, 'pay-admin-1');
+        }
+    },
+    {
         name: 'payRental - missing expirationDate triggers empty string branch',
         async run() {
             const req = mockRequest({
