@@ -1,5 +1,6 @@
 import { restoreAllStubs } from './support/testHelpers.js';
 import adminTests from './adminController.unitTests.js';
+import availabilityTests from './availability.unitTests.js';
 import bookingTests from './bookingController.unitTests.js';
 import parkingTests from './parkingController.unitTests.js';
 import providerTests from './providerController.unitTests.js';
@@ -15,6 +16,7 @@ export type ControllerTest = {
 
 const allTestGroups = [
     { title: 'Admin Controller', tests: adminTests },
+    { title: 'Availability Utilities', tests: availabilityTests },
     { title: 'Booking Controller', tests: bookingTests },
     { title: 'Parking Controller', tests: parkingTests },
     { title: 'Provider Controller', tests: providerTests },
