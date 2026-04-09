@@ -120,6 +120,24 @@ const userTests: ControllerTest[] = [
         }
     },
     {
+        name: 'updateUserRole - accepts mobility provider role',
+        async run() {
+            let passedRole: string = '';
+            stub(prisma.userProfile, 'update', async (opts: any) => {
+                passedRole = opts.data.role;
+                return { id: 'u3' };
+            });
+
+            const req = mockRequest({ params: { id: 'u3' }, body: { role: 'MOBILITY_PROVIDER' } });
+            const res = mockResponse();
+
+            await updateUserRole(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(passedRole, 'MOBILITY_PROVIDER');
+        }
+    },
+    {
         name: 'updateUserRole - 500 error',
         async run() {
             stub(prisma.userProfile, 'update', async () => { throw new Error('fail'); });
