@@ -37,6 +37,20 @@ const transportTests: ControllerTest[] = [
         }
     },
     {
+        name: 'getRoutes - returns expected transport route details',
+        async run() {
+            const req = mockRequest();
+            const res = mockResponse();
+
+            await getRoutes(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData[0].type, 'BUS');
+            assert.equal(res.jsonData[1].name, 'City Circle Line');
+            assert.equal(res.jsonData[2].schedule, 'Every 20 mins');
+        }
+    },
+    {
         name: 'getRoutes - 500 fallback',
         async run() {
             stub(accessLogCreator, 'create', async () => { throw new Error('fail'); });

@@ -287,6 +287,45 @@ const bookingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'payRental - accepts card expiring in current month',
+        async run() {
+            process.env.PAYMENT_SERVICE_AVAILABLE = 'true';
+
+            const now = new Date();
+            const expirationDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            stub(prisma.booking, 'findUnique', async () => ({
+                id: 'b1',
+                clientId: 'u1',
+                status: 'COMPLETED',
+                totalCost: 10,
+                payment: null,
+                transportId: 't1'
+            }));
+            stub(paymentCreator, 'create', async () => ({ id: 'pay-current-month' }));
+            stub(prisma.transport, 'update', async () => ({}));
+
+            const req = mockRequest({
+                body: {
+                    paymentMethod: 'CARD',
+                    cardNumber: '1111222233334444',
+                    cardFirstName: 'A',
+                    cardLastName: 'B',
+                    cardVerificationCode: '123',
+                    expirationDate
+                },
+                user: { id: 'u1' },
+                params: { id: 'b1' }
+            });
+            const res = mockResponse();
+
+            await payRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.transactionId, 'pay-current-month');
+        }
+    },
+    {
         name: 'payRental - other code paths (404, 403, 400, 503, 500)',
         async run() {
             process.env.PAYMENT_SERVICE_AVAILABLE = 'false';
@@ -366,6 +405,28 @@ const bookingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'getCo2Summary - admin does not apply ownership filters',
+        async run() {
+            let passedFilter: any = null;
+
+            stub(prisma.booking, 'findMany', async (opts: any) => {
+                passedFilter = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ user: { id: 'admin1', role: 'ADMIN' } });
+            const res = mockResponse();
+
+            await getCo2Summary(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(passedFilter.status, 'COMPLETED');
+            assert.equal(passedFilter.co2Kg.not, null);
+            assert.equal('clientId' in passedFilter, false);
+            assert.equal('transport' in passedFilter, false);
+        }
+    },
+    {
         name: 'reserveVehicle - invalid time range',
         async run() {
             stub(prisma.transport, 'findUnique', async () => mockTransport);
@@ -437,6 +498,37 @@ const bookingTests: ControllerTest[] = [
             await startRental(req, res);
 
             assert.equal(res.statusCode, 200);
+        }
+    },
+    {
+        name: 'endRental - admin can end another user booking',
+        async run() {
+            const t0 = new Date(Date.now() - 600000);
+
+            stub(prisma.booking, 'findUnique', async () => ({
+                id: 'b1',
+                clientId: 'other',
+                status: 'ACTIVE',
+                transportId: 't1',
+                startTime: t0,
+                client: {},
+                transport: { car: { emissionFactorGPerKm: 120 } }
+            }));
+            stub(tripPricingService, 'calculate', () => ({ total: 10, strategy: 'BASE', adjustments: [] }));
+            stub(prisma.booking, 'update', async () => ({ status: 'COMPLETED' }));
+            stub(prisma.userProfile, 'update', async () => ({}));
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
+
+            const req = mockRequest({
+                params: { id: 'b1' },
+                user: { id: 'admin', role: 'ADMIN' }
+            });
+            const res = mockResponse();
+
+            await endRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.status, 'COMPLETED');
         }
     },
     {
@@ -569,6 +661,42 @@ const bookingTests: ControllerTest[] = [
             assert.equal(res.statusCode, 200);
 
             assert.equal(capturedDuration, 1);
+        }
+    },
+    {
+        name: 'payRental - admin can pay another user booking',
+        async run() {
+            process.env.PAYMENT_SERVICE_AVAILABLE = 'true';
+
+            let findUniqueCalls = 0;
+            stub(prisma.booking, 'findUnique', async () => {
+                findUniqueCalls += 1;
+                return findUniqueCalls === 1
+                    ? { id: 'b1', clientId: 'u2', status: 'COMPLETED', totalCost: 10, payment: null, transportId: 't1' }
+                    : { id: 'b1', clientId: 'u2', status: 'COMPLETED', totalCost: 10, transportId: 't1' };
+            });
+            stub(paymentCreator, 'create', async () => ({ id: 'pay-admin-1' }));
+            stub(prisma.transport, 'update', async () => ({}));
+
+            const req = mockRequest({
+                body: {
+                    paymentMethod: 'CARD',
+                    cardNumber: '1111222233334444',
+                    cardFirstName: 'Admin',
+                    cardLastName: 'User',
+                    cardVerificationCode: '123',
+                    expirationDate: '2099-12'
+                },
+                user: { id: 'admin-1', role: 'ADMIN' },
+                params: { id: 'b1' }
+            });
+
+            const res = mockResponse();
+
+            await payRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.transactionId, 'pay-admin-1');
         }
     },
     {
