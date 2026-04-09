@@ -440,6 +440,37 @@ const bookingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'endRental - admin can end another user booking',
+        async run() {
+            const t0 = new Date(Date.now() - 600000);
+
+            stub(prisma.booking, 'findUnique', async () => ({
+                id: 'b1',
+                clientId: 'other',
+                status: 'ACTIVE',
+                transportId: 't1',
+                startTime: t0,
+                client: {},
+                transport: { car: { emissionFactorGPerKm: 120 } }
+            }));
+            stub(tripPricingService, 'calculate', () => ({ total: 10, strategy: 'BASE', adjustments: [] }));
+            stub(prisma.booking, 'update', async () => ({ status: 'COMPLETED' }));
+            stub(prisma.userProfile, 'update', async () => ({}));
+            stub(vehicleAvailabilityService, 'updateAvailability', async () => { });
+
+            const req = mockRequest({
+                params: { id: 'b1' },
+                user: { id: 'admin', role: 'ADMIN' }
+            });
+            const res = mockResponse();
+
+            await endRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.status, 'COMPLETED');
+        }
+    },
+    {
         name: 'endRental - bike emission defaults to 0',
         async run() {
             const t0 = new Date(Date.now() - 600000);
