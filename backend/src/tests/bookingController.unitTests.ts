@@ -287,6 +287,45 @@ const bookingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'payRental - accepts card expiring in current month',
+        async run() {
+            process.env.PAYMENT_SERVICE_AVAILABLE = 'true';
+
+            const now = new Date();
+            const expirationDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            stub(prisma.booking, 'findUnique', async () => ({
+                id: 'b1',
+                clientId: 'u1',
+                status: 'COMPLETED',
+                totalCost: 10,
+                payment: null,
+                transportId: 't1'
+            }));
+            stub(paymentCreator, 'create', async () => ({ id: 'pay-current-month' }));
+            stub(prisma.transport, 'update', async () => ({}));
+
+            const req = mockRequest({
+                body: {
+                    paymentMethod: 'CARD',
+                    cardNumber: '1111222233334444',
+                    cardFirstName: 'A',
+                    cardLastName: 'B',
+                    cardVerificationCode: '123',
+                    expirationDate
+                },
+                user: { id: 'u1' },
+                params: { id: 'b1' }
+            });
+            const res = mockResponse();
+
+            await payRental(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData.transactionId, 'pay-current-month');
+        }
+    },
+    {
         name: 'payRental - other code paths (404, 403, 400, 503, 500)',
         async run() {
             process.env.PAYMENT_SERVICE_AVAILABLE = 'false';
