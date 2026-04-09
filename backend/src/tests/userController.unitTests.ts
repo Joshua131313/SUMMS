@@ -60,6 +60,35 @@ const userTests: ControllerTest[] = [
         }
     },
     {
+        name: 'updateMe - forwards optional profile fields',
+        async run() {
+            let passData: any;
+            stub(prisma.userProfile, 'update', async (opts: any) => {
+                passData = opts.data;
+                return { id: 'u1' };
+            });
+
+            const req = mockRequest({
+                user: { id: 'u1' },
+                body: {
+                    lastName: 'Doe',
+                    username: 'janedoe',
+                    email: 'jane@example.com',
+                    preferredMobility: 'BIKE'
+                }
+            });
+            const res = mockResponse();
+
+            await updateMe(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(passData.lastName, 'Doe');
+            assert.equal(passData.username, 'janedoe');
+            assert.equal(passData.email, 'jane@example.com');
+            assert.equal(passData.preferredMobility, 'BIKE');
+        }
+    },
+    {
         name: 'updateMe - 500 error',
         async run() {
             stub(prisma.userProfile, 'update', async () => { throw new Error('fail'); });
