@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node src/tests/rentals.unitTests.mjs && tsx src/tests/controllers.unitTests.ts"
+    "test": "node src/tests/rentals.unitTests.mjs && tsx src/tests/controllers.unitTests.ts && tsx src/tests/health.integrationTests.ts"
   },
   "keywords": [],
   "author": "",
