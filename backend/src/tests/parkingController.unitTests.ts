@@ -31,6 +31,24 @@ const parkingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'listSpots - maps Main St and other-user reservation correctly',
+        async run() {
+            stub(prisma.parkingSpot, 'findMany', async () => [
+                { id: 'p3', location: 'Main St', reservations: [{ clientId: 'u2' }] }
+            ]);
+
+            const req = mockRequest({ user: { id: 'u1' } });
+            const res = mockResponse();
+
+            await listSpots(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.jsonData[0].location, 'Sherbrooke St');
+            assert.equal(res.jsonData[0].status, 'RESERVED');
+            assert.equal(res.jsonData[0].reservedByCurrentUser, false);
+        }
+    },
+    {
         name: 'listSpots - 500 error',
         async run() {
             stub(prisma.parkingSpot, 'findMany', async () => { throw new Error('fail'); });
