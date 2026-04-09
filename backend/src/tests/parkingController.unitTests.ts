@@ -154,6 +154,34 @@ const parkingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'unreserveSpot - keeps reserved status when another reservation remains',
+        async run() {
+            stub(prisma.parkingReservation, 'findFirst', async () => ({ id: 'r1' }));
+
+            let updatedSpotStatus = '';
+            stub(prisma, '$transaction', async (cb: any) => {
+                const mockTx = {
+                    parkingReservation: {
+                        delete: async () => ({}),
+                        findFirst: async () => ({ id: 'r2' })
+                    },
+                    parkingSpot: {
+                        update: async ({ data }: any) => { updatedSpotStatus = data.status; return {}; }
+                    }
+                };
+                return cb(mockTx);
+            });
+
+            const req = mockRequest({ params: { spotId: 's1' }, user: { id: 'u1' } });
+            const res = mockResponse();
+
+            await unreserveSpot(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(updatedSpotStatus, 'RESERVED');
+        }
+    },
+    {
         name: 'unreserveSpot - fallback 500',
         async run() {
             stub(prisma.parkingReservation, 'findFirst', async () => { throw new Error('fail') });
