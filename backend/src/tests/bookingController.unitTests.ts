@@ -405,6 +405,28 @@ const bookingTests: ControllerTest[] = [
         }
     },
     {
+        name: 'getCo2Summary - admin does not apply ownership filters',
+        async run() {
+            let passedFilter: any = null;
+
+            stub(prisma.booking, 'findMany', async (opts: any) => {
+                passedFilter = opts.where;
+                return [];
+            });
+
+            const req = mockRequest({ user: { id: 'admin1', role: 'ADMIN' } });
+            const res = mockResponse();
+
+            await getCo2Summary(req, res);
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(passedFilter.status, 'COMPLETED');
+            assert.equal(passedFilter.co2Kg.not, null);
+            assert.equal('clientId' in passedFilter, false);
+            assert.equal('transport' in passedFilter, false);
+        }
+    },
+    {
         name: 'reserveVehicle - invalid time range',
         async run() {
             stub(prisma.transport, 'findUnique', async () => mockTransport);
