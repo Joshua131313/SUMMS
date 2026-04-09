@@ -6,6 +6,7 @@ import providerTests from './providerController.unitTests.js';
 import transportTests from './transportController.unitTests.js';
 import userTests from './userController.unitTests.js';
 import vehicleTests from './vehicleController.unitTests.js';
+import vehicleTypeTests from './vehicleType.unitTests.js';
 
 export type ControllerTest = {
     name: string;
@@ -19,7 +20,8 @@ const allTestGroups = [
     { title: 'Provider Controller', tests: providerTests },
     { title: 'Transport Controller', tests: transportTests },
     { title: 'User Controller', tests: userTests },
-    { title: 'Vehicle Controller', tests: vehicleTests }
+    { title: 'Vehicle Controller', tests: vehicleTests },
+    { title: 'Vehicle Type Utilities', tests: vehicleTypeTests }
 ];
 
 const runControllerTests = async () => {
